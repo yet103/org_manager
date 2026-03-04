@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>組織図マネージャー</title>
+  <meta name="description" content="人物と所属、役割のデータから組織図を作成するアプリケーション">
+  <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+  <div id="app">
+    <!-- Left Sidebar: Person List -->
+    <aside id="sidebar-left">
+      <div class="panel-header">
+        <h2>人物一覧</h2>
+        <button class="btn btn-primary btn-icon" id="btn-add-person" title="人物を追加">＋</button>
+      </div>
+      <div id="person-list"></div>
+    </aside>
+
+    <!-- Canvas Area -->
+    <main id="canvas-area">
+      <div id="toolbar">
+        <div class="toolbar-group">
+          <span class="toolbar-label">ビュー</span>
+          <button class="btn active" id="btn-square-view" title="スクエアビュー">□ スクエア</button>
+          <button class="btn" id="btn-quarter-view" title="クォータービュー">◇ クォーター</button>
+        </div>
+        <div class="toolbar-group">
+          <span class="toolbar-label">ツール</span>
+          <button class="btn active" id="btn-tool-select" title="選択・移動">🖱 選択</button>
+          <button class="btn" id="btn-tool-region" title="領域を描画">⬜ 領域</button>
+          <button class="btn" id="btn-tool-connector" title="コネクタ (Shift)">🔗 コネクタ</button>
+        </div>
+        <div class="toolbar-group">
+          <button class="btn" id="btn-bulk-create" title="一括作成">📋 一括作成</button>
+          <button class="btn" id="btn-role-manage" title="役割管理">🏷 役割管理</button>
+        </div>
+        <div class="toolbar-group">
+          <button class="btn btn-danger" id="btn-delete" title="選択中のアイテムを削除">🗑 削除</button>
+        </div>
+        <div class="toolbar-group">
+          <button class="btn btn-icon" id="btn-undo" title="元に戻す (Ctrl+Z)">↩</button>
+          <button class="btn btn-icon" id="btn-redo" title="やり直し (Ctrl+Y)">↪</button>
+        </div>
+        <div class="toolbar-group toolbar-align">
+          <span class="toolbar-label">整列</span>
+          <button class="btn btn-icon" id="btn-align-left" title="左揃え">⫷</button>
+          <button class="btn btn-icon" id="btn-align-center-h" title="水平中央">⫿</button>
+          <button class="btn btn-icon" id="btn-align-right" title="右揃え">⫸</button>
+          <button class="btn btn-icon" id="btn-align-top" title="上揃え">⤒</button>
+          <button class="btn btn-icon" id="btn-align-center-v" title="垂直中央">⎯</button>
+          <button class="btn btn-icon" id="btn-align-bottom" title="下揃え">⤓</button>
+        </div>
+        <div class="toolbar-group toolbar-zoom">
+          <span class="toolbar-label">🔍</span>
+          <span id="zoom-label" class="zoom-label">100%</span>
+          <button class="btn btn-icon" id="btn-zoom-reset" title="ズームリセット">⟲</button>
+        </div>
+      </div>
+      <div id="canvas-container">
+        <canvas id="main-canvas"></canvas>
+      </div>
+    </main>
+
+    <!-- Right Sidebar: Properties -->
+    <aside id="sidebar-right">
+      <div class="panel-header">
+        <h2>プロパティ</h2>
+      </div>
+      <div id="property-content">
+        <div id="no-selection-msg">アイテムを選択してください</div>
+        <div id="person-props" style="display:none;">
+          <div class="prop-group">
+            <div class="prop-label">名前</div>
+            <input type="text" class="prop-input" id="prop-name" placeholder="名前">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">役割（テキスト）</div>
+            <input type="text" class="prop-input" id="prop-role" placeholder="役割">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">所属</div>
+            <input type="text" class="prop-input" id="prop-affiliation" placeholder="所属">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">色</div>
+            <input type="color" class="prop-color-input" id="prop-color" value="#4a8acf">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">役割ラベル</div>
+            <div id="prop-roles-container"></div>
+          </div>
+        </div>
+        <div id="region-props" style="display:none;">
+          <div class="prop-group">
+            <div class="prop-label">領域名</div>
+            <input type="text" class="prop-input" id="prop-region-name" placeholder="領域名">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">重なり順</div>
+            <div class="zorder-buttons">
+              <button class="btn btn-sm" id="btn-z-back" title="最背面">⤓</button>
+              <button class="btn btn-sm" id="btn-z-backward" title="背面">↓</button>
+              <button class="btn btn-sm" id="btn-z-forward" title="前面">↑</button>
+              <button class="btn btn-sm" id="btn-z-front" title="最前面">⤒</button>
+            </div>
+          </div>
+        </div>
+        <div id="connector-props" style="display:none;">
+          <div class="prop-group">
+            <div class="prop-label">ラベル</div>
+            <input type="text" class="prop-input" id="prop-connector-label" placeholder="ラベル">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">方向</div>
+            <select class="prop-input" id="prop-connector-direction">
+              <option value="none">なし</option>
+              <option value="forward">→ 順方向</option>
+              <option value="backward">← 逆方向</option>
+              <option value="both">↔ 双方向</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Bulk Create Modal -->
+  <div class="modal-overlay" id="bulk-modal">
+    <div class="modal-panel">
+      <h3 class="modal-title">📋 一括作成</h3>
+      <p class="modal-desc">所属とメンバーのタブ区切りデータを貼り付けてください。</p>
+      <textarea id="bulk-textarea" class="modal-textarea" rows="10"
+        placeholder="営業部&#9;田中太郎&#10;営業部&#9;佐藤花子&#10;開発部&#9;鈴木一郎&#10;開発部&#9;高橋美咲"></textarea>
+      <div class="modal-section">
+        <h4 class="modal-subtitle">🎲 テストデータ生成</h4>
+        <div class="modal-row">
+          <label class="modal-label">人数 <input type="number" id="test-person-count" class="modal-input-sm" value="10"
+              min="1" max="200"></label>
+          <label class="modal-label">組織数 <input type="number" id="test-org-count" class="modal-input-sm" value="3"
+              min="1" max="20"></label>
+          <button class="btn" id="test-btn-generate">生成</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="bulk-btn-cancel">キャンセル</button>
+        <button class="btn btn-primary" id="bulk-btn-create">作成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role Management Modal -->
+  <div class="modal-overlay" id="role-modal">
+    <div class="modal-panel">
+      <h3 class="modal-title">🏷 役割管理</h3>
+      <div id="role-list" class="role-list"></div>
+      <div class="modal-section">
+        <h4 class="modal-subtitle">役割を追加</h4>
+        <div class="modal-row">
+          <input type="text" id="role-add-name" class="prop-input" placeholder="役割名" style="flex:1;">
+          <input type="color" id="role-add-color" class="role-add-color-input" value="#e06c75">
+          <select id="role-add-icon" class="role-add-icon-select">
+            <option value="">アイコン</option>
+            <option value="👑">👑</option>
+            <option value="⭐">⭐</option>
+            <option value="🔧">🔧</option>
+            <option value="📊">📊</option>
+            <option value="🎯">🎯</option>
+            <option value="💼">💼</option>
+            <option value="🛡️">🛡️</option>
+            <option value="📝">📝</option>
+            <option value="🔬">🔬</option>
+            <option value="💡">💡</option>
+          </select>
+          <button class="btn btn-primary" id="role-btn-add">追加</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="role-btn-close">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
