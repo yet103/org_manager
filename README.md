@@ -90,6 +90,16 @@
 - 所属ごとに自動で領域を作成
 
 </td>
+</tr>
+<tr>
+<td>
+
+### 💾 データ保存・読込
+- JSONファイルにエクスポート（💾 保存）
+- JSONファイルからインポート（📂 読込）
+- localStorage による自動保存も併用
+
+</td>
 <td>
 
 ### 🌲 ツリー構造サイドバー
@@ -108,23 +118,23 @@
 ### 必要なもの
 
 - モダンブラウザ（Chrome / Edge / Firefox / Safari）
-- 任意のHTTPサーバー
+- **それだけ！** サーバーは不要です
 
 ### 起動
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/YOUR_USERNAME/org_manager.git
+git clone https://github.com/yet103/org_manager.git
 cd org_manager
-
-# Python の場合
-python -m http.server 8765
-
-# Node.js の場合
-npx serve -p 8765
 ```
 
-ブラウザで **http://localhost:8765** を開くだけ！
+**`index.html` をダブルクリック** で起動！🎉
+
+> 💡 HTTPサーバー経由でも利用できます：
+> ```bash
+> python -m http.server 8765    # Python
+> npx serve -p 8765             # Node.js
+> ```
 
 ---
 
@@ -143,6 +153,8 @@ npx serve -p 8765
 | ↪ やり直し | `Ctrl + Y` |
 | 🗑️ 削除 | `Delete` キー |
 | 📋 全選択 | `Ctrl + A` |
+| 💾 保存 | ツールバー「保存」→ JSONファイルをダウンロード |
+| 📂 読込 | ツールバー「読込」→ JSONファイルを選択して復元 |
 
 ---
 

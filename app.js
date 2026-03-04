@@ -1795,6 +1795,69 @@
     });
   }
 
+  // ===== File Save / Load =====
+  const btnSaveFile = document.getElementById('btn-save-file');
+  const btnLoadFile = document.getElementById('btn-load-file');
+  const fileImportInput = document.getElementById('file-import-input');
+
+  if (btnSaveFile) {
+    btnSaveFile.addEventListener('click', () => {
+      const data = {
+        persons: state.persons,
+        regions: state.regions,
+        roles: state.roles,
+        connectors: state.connectors,
+        nextId: state.nextId,
+        exportedAt: new Date().toISOString(),
+      };
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      a.href = url;
+      a.download = `orgchart_${timestamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  if (btnLoadFile && fileImportInput) {
+    btnLoadFile.addEventListener('click', () => {
+      fileImportInput.click();
+    });
+    fileImportInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!confirm('現在のデータを上書きします。よろしいですか？')) {
+        fileImportInput.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (data.persons) state.persons = data.persons;
+          if (data.regions) state.regions = data.regions;
+          if (data.roles) state.roles = data.roles;
+          if (data.connectors) state.connectors = data.connectors;
+          if (data.nextId) state.nextId = data.nextId;
+          clearSelection();
+          saveState();
+          renderPersonList();
+          updatePropsPanel();
+          render();
+        } catch (err) {
+          alert('ファイルの読み込みに失敗しました: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      fileImportInput.value = '';
+    });
+  }
+
   btnSquareView.addEventListener('click', () => {
     state.viewMode = 'square';
     btnSquareView.classList.add('active');
