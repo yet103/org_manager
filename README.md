@@ -230,6 +230,32 @@ org_manager/
 
 ---
 
+## 🚀 すぐに使う
+
+### ▶ オンラインで使う（GitHub Pages）
+
+**https://yet103.github.io/org_manager/**
+
+ブラウザでアクセスするだけ！インストール不要。
+
+### ▶ ダウンロードして使う
+
+1. [ZIPをダウンロード](https://github.com/yet103/org_manager/archive/refs/heads/main.zip)
+2. 解凍して `index.html` をダブルクリック
+3. 完了！🎉
+
+### ▶ Git Clone
+
+```bash
+git clone https://github.com/yet103/org_manager.git
+cd org_manager
+# index.html をブラウザで開く
+```
+
+> 💡 サーバーは**一切不要**です。`file://` プロトコルで直接動作します。
+
+---
+
 ## 📜 ライセンス
 
 [MIT License](LICENSE) — 自由にご利用ください。
