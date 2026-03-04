@@ -8,10 +8,11 @@
     regions: [],
     roles: [],
     connectors: [],
+    textAnnotations: [],
     viewMode: 'square', // 'square' | 'quarter'
-    tool: 'select',     // 'select' | 'region' | 'connector'
+    tool: 'select',     // 'select' | 'region' | 'connector' | 'text'
     selectedId: null,
-    selectedType: null,  // 'person' | 'region' | 'connector'
+    selectedType: null,  // 'person' | 'region' | 'connector' | 'text'
     dragging: null,
     regionDraw: null,
     connectorDraw: null, // { fromRegionId, fromSide, currentX, currentY }
@@ -20,6 +21,7 @@
     shiftHeld: false,
     prevTool: null, // for shift-key temp connector mode
     addingWaypoints: false, // show "+" handles for adding waypoints
+    searchQuery: '',
     nextId: 1,
     gridSize: 40,
     canvasOffset: { x: 0, y: 0 },
@@ -57,6 +59,16 @@
   const btnAlignCenterH = document.getElementById('btn-align-center-h');
   const btnAlignCenterV = document.getElementById('btn-align-center-v');
 
+  // New feature buttons
+  const btnExportPng = document.getElementById('btn-export-png');
+  const btnImportCsv = document.getElementById('btn-import-csv');
+  const csvImportInput = document.getElementById('csv-import-input');
+  const btnPrint = document.getElementById('btn-print');
+  const btnDarkMode = document.getElementById('btn-dark-mode');
+  const btnShareUrl = document.getElementById('btn-share-url');
+  const btnToolText = document.getElementById('btn-tool-text');
+  const personSearch = document.getElementById('person-search');
+
   const connectorProps = document.getElementById('connector-props');
   const propConnectorLabel = document.getElementById('prop-connector-label');
   const propConnectorDirection = document.getElementById('prop-connector-direction');
@@ -64,13 +76,23 @@
   const noSelectionMsg = document.getElementById('no-selection-msg');
   const personProps = document.getElementById('person-props');
   const regionProps = document.getElementById('region-props');
+  const textProps = document.getElementById('text-props');
 
   const propName = document.getElementById('prop-name');
   const propRole = document.getElementById('prop-role');
   const propAffiliation = document.getElementById('prop-affiliation');
   const propColor = document.getElementById('prop-color');
+  const propEmail = document.getElementById('prop-email');
+  const propPhone = document.getElementById('prop-phone');
+  const propJoindate = document.getElementById('prop-joindate');
+  const propEffectiveDate = document.getElementById('prop-effective-date');
+  const propPhotoUrl = document.getElementById('prop-photo-url');
   const propRegionName = document.getElementById('prop-region-name');
+  const propRegionColor = document.getElementById('prop-region-color');
   const propRolesContainer = document.getElementById('prop-roles-container');
+  const propTextContent = document.getElementById('prop-text-content');
+  const propTextFontsize = document.getElementById('prop-text-fontsize');
+  const propTextColor = document.getElementById('prop-text-color');
 
   // Z-order buttons
   const btnZFront = document.getElementById('btn-z-front');
@@ -153,10 +175,36 @@
     drawConnectors();
     drawRegions();
     drawRegionPreview();
+    drawTextAnnotations();
     drawPersons();
     drawConnectorPreview();
     drawConnectionPoints();
     drawRangeSelect();
+  }
+
+  function drawTextAnnotations() {
+    state.textAnnotations.forEach(t => {
+      const s = worldToScreen(t.x, t.y);
+      const isSelected = state.selectedType === 'text' && state.selectedId === t.id;
+      const fontSize = (t.fontSize || 14) * state.zoom;
+      ctx.font = `${fontSize}px "Segoe UI", "Meiryo", sans-serif`;
+      ctx.fillStyle = t.color || '#2c3e50';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      const lines = (t.text || '').split('\n');
+      lines.forEach((line, i) => {
+        ctx.fillText(line, s.x, s.y + i * fontSize * 1.3);
+      });
+      if (isSelected) {
+        const maxW = Math.max(...lines.map(l => ctx.measureText(l).width), 20);
+        const totalH = lines.length * fontSize * 1.3;
+        ctx.strokeStyle = '#4a8acf';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.strokeRect(s.x - 2, s.y - 2, maxW + 4, totalH + 4);
+        ctx.setLineDash([]);
+      }
+    });
   }
 
   // ===== Connector Helpers =====
@@ -551,24 +599,41 @@
   function drawRegions() {
     state.regions.forEach(r => {
       const isSelected = (state.selectedType === 'region' && state.selectedId === r.id) || state.multiSelection.regionIds.includes(r.id);
+      const rc = r.color || '#4a8acf';
+      // Count persons in this region
+      const personCount = state.persons.filter(p =>
+        p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h
+      ).length;
 
       if (state.viewMode === 'square') {
         const s = worldToScreen(r.x, r.y);
         const e = worldToScreen(r.x + r.w, r.y + r.h);
-        ctx.fillStyle = isSelected ? 'rgba(74,138,207,0.1)' : 'rgba(74,138,207,0.05)';
+        // Parse region color for rgba
+        const hexToRgba = (hex, a) => {
+          const bigint = parseInt(hex.replace('#', ''), 16);
+          return `rgba(${(bigint >> 16) & 255},${(bigint >> 8) & 255},${bigint & 255},${a})`;
+        };
+        ctx.fillStyle = isSelected ? hexToRgba(rc, 0.1) : hexToRgba(rc, 0.05);
         ctx.fillRect(s.x, s.y, e.x - s.x, e.y - s.y);
-        ctx.strokeStyle = isSelected ? '#4a8acf' : 'rgba(100,160,220,0.6)';
+        ctx.strokeStyle = isSelected ? rc : hexToRgba(rc, 0.6);
         ctx.lineWidth = isSelected ? 2 : 1.5;
         ctx.setLineDash(isSelected ? [] : [6, 3]);
         ctx.strokeRect(s.x, s.y, e.x - s.x, e.y - s.y);
         ctx.setLineDash([]);
 
         if (r.name) {
-          ctx.fillStyle = '#4a8acf';
+          ctx.fillStyle = rc;
           ctx.font = '9px "Segoe UI", "Meiryo", sans-serif';
           ctx.textAlign = 'left';
           ctx.textBaseline = 'bottom';
-          ctx.fillText(r.name, s.x + 4, s.y - 3);
+          const label = r.name + (personCount > 0 ? ` (${personCount})` : '');
+          ctx.fillText(label, s.x + 4, s.y - 3);
+        } else if (personCount > 0) {
+          ctx.fillStyle = rc;
+          ctx.font = '8px "Segoe UI", "Meiryo", sans-serif';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(`(${personCount})`, s.x + 4, s.y - 3);
         }
 
         // Resize handles
@@ -582,13 +647,17 @@
           worldToScreen(r.x + r.w, r.y + r.h),
           worldToScreen(r.x, r.y + r.h),
         ];
-        ctx.fillStyle = isSelected ? 'rgba(74,138,207,0.1)' : 'rgba(74,138,207,0.05)';
+        const hexToRgba = (hex, a) => {
+          const bigint = parseInt(hex.replace('#', ''), 16);
+          return `rgba(${(bigint >> 16) & 255},${(bigint >> 8) & 255},${bigint & 255},${a})`;
+        };
+        ctx.fillStyle = isSelected ? hexToRgba(rc, 0.1) : hexToRgba(rc, 0.05);
         ctx.beginPath();
         ctx.moveTo(corners[0].x, corners[0].y);
         for (let i = 1; i < 4; i++) ctx.lineTo(corners[i].x, corners[i].y);
         ctx.closePath();
         ctx.fill();
-        ctx.strokeStyle = isSelected ? '#4a8acf' : 'rgba(100,160,220,0.6)';
+        ctx.strokeStyle = isSelected ? rc : hexToRgba(rc, 0.6);
         ctx.lineWidth = isSelected ? 2 : 1.5;
         ctx.setLineDash(isSelected ? [] : [6, 3]);
         ctx.stroke();
@@ -596,11 +665,12 @@
 
         if (r.name) {
           const top = corners[0];
-          ctx.fillStyle = '#4a8acf';
+          ctx.fillStyle = rc;
           ctx.font = '9px "Segoe UI", "Meiryo", sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
-          ctx.fillText(r.name, top.x, top.y - 4);
+          const label = r.name + (personCount > 0 ? ` (${personCount})` : '');
+          ctx.fillText(label, top.x, top.y - 4);
         }
 
         // Resize handles in iso
@@ -886,6 +956,7 @@
       regions: state.regions,
       roles: state.roles,
       connectors: state.connectors,
+      textAnnotations: state.textAnnotations,
       nextId: state.nextId,
     }));
   }
@@ -895,6 +966,7 @@
     state.regions = snap.regions;
     state.roles = snap.roles;
     state.connectors = snap.connectors || [];
+    state.textAnnotations = snap.textAnnotations || [];
     state.nextId = snap.nextId;
     state.persons.forEach(p => { if (!p.roleIds) p.roleIds = []; });
     clearSelection();
@@ -935,6 +1007,11 @@
       x: (opts && opts.x !== undefined) ? opts.x : (Math.random() - 0.5) * 200,
       y: (opts && opts.y !== undefined) ? opts.y : (Math.random() - 0.5) * 200,
       roleIds: (opts && opts.roleIds) || [],
+      email: (opts && opts.email) || '',
+      phone: (opts && opts.phone) || '',
+      joinDate: (opts && opts.joinDate) || '',
+      effectiveDate: (opts && opts.effectiveDate) || '',
+      photoUrl: (opts && opts.photoUrl) || '',
     };
     state.persons.push(p);
     return p;
@@ -983,6 +1060,7 @@
     personProps.style.display = 'none';
     regionProps.style.display = 'none';
     if (connectorProps) connectorProps.style.display = 'none';
+    if (textProps) textProps.style.display = 'none';
 
     if (state.selectedType === 'person') {
       const p = state.persons.find(p => p.id === state.selectedId);
@@ -992,18 +1070,31 @@
       propRole.value = p.role;
       propAffiliation.value = p.affiliation;
       propColor.value = p.color;
+      if (propEmail) propEmail.value = p.email || '';
+      if (propPhone) propPhone.value = p.phone || '';
+      if (propJoindate) propJoindate.value = p.joinDate || '';
+      if (propEffectiveDate) propEffectiveDate.value = p.effectiveDate || '';
+      if (propPhotoUrl) propPhotoUrl.value = p.photoUrl || '';
       renderRoleCheckboxes(p);
     } else if (state.selectedType === 'region') {
       const r = state.regions.find(r => r.id === state.selectedId);
       if (!r) return;
       regionProps.style.display = 'block';
       propRegionName.value = r.name || '';
+      if (propRegionColor) propRegionColor.value = r.color || '#4a8acf';
     } else if (state.selectedType === 'connector') {
       const c = state.connectors.find(c => c.id === state.selectedId);
       if (!c || !connectorProps) return;
       connectorProps.style.display = 'block';
       if (propConnectorLabel) propConnectorLabel.value = c.label || '';
       if (propConnectorDirection) propConnectorDirection.value = c.direction || 'none';
+    } else if (state.selectedType === 'text') {
+      const t = state.textAnnotations.find(t => t.id === state.selectedId);
+      if (!t || !textProps) return;
+      textProps.style.display = 'block';
+      if (propTextContent) propTextContent.value = t.text || '';
+      if (propTextFontsize) propTextFontsize.value = t.fontSize || 14;
+      if (propTextColor) propTextColor.value = t.color || '#2c3e50';
     } else if (state.multiSelection.personIds.length > 0) {
       // Multi-selection: show color picker for batch color change
       personProps.style.display = 'block';
@@ -1128,7 +1219,9 @@
       // Persons in this region
       persons.forEach(p => {
         const div = document.createElement('div');
-        div.className = 'person-item' + (state.selectedType === 'person' && state.selectedId === p.id ? ' selected' : '');
+        const isMatch = state.searchQuery && p.name.toLowerCase().includes(state.searchQuery);
+        div.className = 'person-item' + (state.selectedType === 'person' && state.selectedId === p.id ? ' selected' : '') + (isMatch ? ' search-highlight' : '');
+        if (state.searchQuery && !isMatch) div.style.display = 'none';
         const roleNames = (p.roleIds || []).map(rid => { const r = state.roles.find(r => r.id === rid); return r ? r.name : ''; }).filter(Boolean);
         const roleStr = roleNames.length > 0 ? ' (' + roleNames.join(', ') + ')' : '';
         div.innerHTML = `<span class="color-dot" style="background:${p.color}"></span><span>${p.name}${roleStr}</span>`;
@@ -1166,7 +1259,9 @@
     }
     unaffiliated.forEach(p => {
       const div = document.createElement('div');
-      div.className = 'person-item' + (state.selectedType === 'person' && state.selectedId === p.id ? ' selected' : '');
+      const isMatch = state.searchQuery && p.name.toLowerCase().includes(state.searchQuery);
+      div.className = 'person-item' + (state.selectedType === 'person' && state.selectedId === p.id ? ' selected' : '') + (isMatch ? ' search-highlight' : '');
+      if (state.searchQuery && !isMatch) div.style.display = 'none';
       const roleNames = (p.roleIds || []).map(rid => { const r = state.roles.find(r => r.id === rid); return r ? r.name : ''; }).filter(Boolean);
       const roleStr = roleNames.length > 0 ? ' (' + roleNames.join(', ') + ')' : '';
       div.innerHTML = `<span class="color-dot" style="background:${p.color}"></span><span>${p.name}${roleStr}</span>`;
@@ -1314,6 +1409,18 @@
 
       const person = hitTestPerson(pos.x, pos.y);
       if (person) {
+        // Ctrl+Click: toggle in multi-selection
+        if (e.ctrlKey) {
+          const idx = state.multiSelection.personIds.indexOf(person.id);
+          if (idx >= 0) {
+            state.multiSelection.personIds.splice(idx, 1);
+          } else {
+            state.multiSelection.personIds.push(person.id);
+          }
+          renderPersonList();
+          render();
+          return;
+        }
         // Multi-selection group drag
         if (state.multiSelection.personIds.includes(person.id)) {
           pushUndo();
@@ -1337,6 +1444,18 @@
 
       const region = hitTestRegion(pos.x, pos.y);
       if (region) {
+        // Ctrl+Click: toggle in multi-selection
+        if (e.ctrlKey) {
+          const idx = state.multiSelection.regionIds.indexOf(region.id);
+          if (idx >= 0) {
+            state.multiSelection.regionIds.splice(idx, 1);
+          } else {
+            state.multiSelection.regionIds.push(region.id);
+          }
+          renderPersonList();
+          render();
+          return;
+        }
         // Multi-selection group drag
         if (state.multiSelection.regionIds.includes(region.id)) {
           pushUndo();
@@ -1877,6 +1996,7 @@
     btnToolSelect.classList.toggle('active', tool === 'select');
     btnToolRegion.classList.toggle('active', tool === 'region');
     if (btnToolConnector) btnToolConnector.classList.toggle('active', tool === 'connector');
+    if (btnToolText) btnToolText.classList.toggle('active', tool === 'text');
     container.style.cursor = tool === 'select' ? 'default' : 'crosshair';
     render();
   }
@@ -1889,38 +2009,210 @@
     btnToolConnector.addEventListener('click', () => setToolActive('connector'));
   }
 
-  btnDelete.addEventListener('click', () => {
-    pushUndo();
+  function deleteSelected() {
+    // Multi-selection delete
+    if (state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0) {
+      pushUndo();
+      // Delete multi-selected persons
+      state.multiSelection.personIds.forEach(pid => {
+        state.persons = state.persons.filter(p => p.id !== pid);
+      });
+      // Delete multi-selected regions and their connectors
+      state.multiSelection.regionIds.forEach(rid => {
+        state.connectors = state.connectors.filter(c =>
+          c.fromRegionId !== rid && c.toRegionId !== rid
+        );
+        state.regions = state.regions.filter(r => r.id !== rid);
+      });
+      state.multiSelection = { personIds: [], regionIds: [] };
+      clearSelection();
+      renderPersonList();
+      saveState();
+      render();
+      return;
+    }
+    // Single selection delete
     if (state.selectedType === 'person') {
+      pushUndo();
       deletePerson(state.selectedId);
     } else if (state.selectedType === 'region') {
-      // Also remove connectors referencing this region
+      pushUndo();
       state.connectors = state.connectors.filter(c =>
         c.fromRegionId !== state.selectedId && c.toRegionId !== state.selectedId
       );
       deleteRegion(state.selectedId);
     } else if (state.selectedType === 'connector') {
+      pushUndo();
       state.connectors = state.connectors.filter(c => c.id !== state.selectedId);
       clearSelection();
       saveState();
       render();
+    } else if (state.selectedType === 'text') {
+      pushUndo();
+      state.textAnnotations = state.textAnnotations.filter(t => t.id !== state.selectedId);
+      clearSelection();
+      saveState();
+      render();
     }
-  });
+  }
+
+  btnDelete.addEventListener('click', deleteSelected);
 
   // ===== Undo/Redo Buttons =====
   if (btnUndo) btnUndo.addEventListener('click', undo);
   if (btnRedo) btnRedo.addEventListener('click', redo);
 
+  // ===== Clipboard for Copy/Paste =====
+  let clipboard = { persons: [], regions: [] };
+
+  function copySelected() {
+    clipboard = { persons: [], regions: [] };
+    // Copy from multi-selection
+    if (state.multiSelection.personIds.length > 0) {
+      clipboard.persons = state.multiSelection.personIds.map(id =>
+        JSON.parse(JSON.stringify(state.persons.find(p => p.id === id)))
+      ).filter(Boolean);
+    }
+    if (state.multiSelection.regionIds.length > 0) {
+      clipboard.regions = state.multiSelection.regionIds.map(id =>
+        JSON.parse(JSON.stringify(state.regions.find(r => r.id === id)))
+      ).filter(Boolean);
+    }
+    // Copy single selection
+    if (clipboard.persons.length === 0 && clipboard.regions.length === 0) {
+      if (state.selectedType === 'person') {
+        const p = state.persons.find(p => p.id === state.selectedId);
+        if (p) clipboard.persons.push(JSON.parse(JSON.stringify(p)));
+      } else if (state.selectedType === 'region') {
+        const r = state.regions.find(r => r.id === state.selectedId);
+        if (r) clipboard.regions.push(JSON.parse(JSON.stringify(r)));
+      }
+    }
+  }
+
+  function pasteClipboard() {
+    if (clipboard.persons.length === 0 && clipboard.regions.length === 0) return;
+    pushUndo();
+    const offset = 30;
+    const newPersonIds = [];
+    clipboard.persons.forEach(p => {
+      const np = addPerson(p.name, {
+        role: p.role, affiliation: p.affiliation, color: p.color,
+        x: p.x + offset, y: p.y + offset,
+        roleIds: p.roleIds || [],
+        email: p.email, phone: p.phone, joinDate: p.joinDate,
+        effectiveDate: p.effectiveDate, photoUrl: p.photoUrl,
+      });
+      newPersonIds.push(np.id);
+    });
+    const newRegionIds = [];
+    clipboard.regions.forEach(r => {
+      const nr = { id: state.nextId++, name: r.name, x: r.x + offset, y: r.y + offset, w: r.w, h: r.h, color: r.color || '#4a8acf' };
+      state.regions.push(nr);
+      newRegionIds.push(nr.id);
+    });
+    state.multiSelection = { personIds: newPersonIds, regionIds: newRegionIds };
+    clearSelection();
+    renderPersonList();
+    saveState();
+    render();
+  }
+
+  function selectAll() {
+    state.multiSelection.personIds = state.persons.map(p => p.id);
+    state.multiSelection.regionIds = state.regions.map(r => r.id);
+    clearSelection();
+    renderPersonList();
+    render();
+  }
+
+  function nudgeSelected(dx, dy) {
+    const items = [];
+    if (state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0) {
+      pushUndo();
+      state.multiSelection.personIds.forEach(pid => {
+        const p = state.persons.find(p => p.id === pid);
+        if (p) { p.x += dx; p.y += dy; }
+      });
+      state.multiSelection.regionIds.forEach(rid => {
+        const r = state.regions.find(r => r.id === rid);
+        if (r) { r.x += dx; r.y += dy; }
+      });
+    } else if (state.selectedType === 'person') {
+      pushUndo();
+      const p = state.persons.find(p => p.id === state.selectedId);
+      if (p) { p.x += dx; p.y += dy; }
+    } else if (state.selectedType === 'region') {
+      pushUndo();
+      const r = state.regions.find(r => r.id === state.selectedId);
+      if (r) { r.x += dx; r.y += dy; }
+    } else if (state.selectedType === 'text') {
+      pushUndo();
+      const t = state.textAnnotations.find(t => t.id === state.selectedId);
+      if (t) { t.x += dx; t.y += dy; }
+    } else {
+      return;
+    }
+    saveState();
+    render();
+  }
+
   // ===== Keyboard Shortcuts =====
   document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
-    if (e.ctrlKey && e.key === 'z') {
+    const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT';
+
+    // Ctrl+F: focus search (always works)
+    if (e.ctrlKey && e.key === 'f') {
       e.preventDefault();
-      undo();
-    } else if (e.ctrlKey && e.key === 'y') {
-      e.preventDefault();
-      redo();
+      if (personSearch) personSearch.focus();
+      return;
     }
+
+    // Skip other shortcuts when in input fields
+    if (inInput) return;
+
+    // Ctrl shortcuts
+    if (e.ctrlKey) {
+      switch (e.key) {
+        case 'z': e.preventDefault(); undo(); return;
+        case 'y': e.preventDefault(); redo(); return;
+        case 'a': e.preventDefault(); selectAll(); return;
+        case 's': e.preventDefault(); if (btnSaveFile) btnSaveFile.click(); return;
+        case 'c': e.preventDefault(); copySelected(); return;
+        case 'v': e.preventDefault(); pasteClipboard(); return;
+        case 'd': e.preventDefault(); copySelected(); pasteClipboard(); return;
+        case '=': case '+': e.preventDefault(); state.zoom = Math.min(state.zoomMax, state.zoom * 1.15); updateZoomLabel(); render(); return;
+        case '-': e.preventDefault(); state.zoom = Math.max(state.zoomMin, state.zoom / 1.15); updateZoomLabel(); render(); return;
+        case '0': e.preventDefault(); state.zoom = 1.0; updateZoomLabel(); render(); return;
+      }
+    }
+
+    // Non-Ctrl shortcuts
+    if (e.key === 'Delete') {
+      e.preventDefault();
+      deleteSelected();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      clearSelection();
+      state.multiSelection = { personIds: [], regionIds: [] };
+      if (state.tool !== 'select') setToolActive('select');
+      renderPersonList();
+      render();
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      state.canvasOffset.x = 0;
+      state.canvasOffset.y = 0;
+      state.zoom = 1.0;
+      updateZoomLabel();
+      render();
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const step = e.shiftKey ? state.gridSize * 5 : state.gridSize;
+      const dx = e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0;
+      const dy = e.key === 'ArrowDown' ? step : e.key === 'ArrowUp' ? -step : 0;
+      nudgeSelected(dx, dy);
+    }
+
     // Shift key temp connector mode
     if (e.key === 'Shift' && !state.shiftHeld && state.tool !== 'connector') {
       state.shiftHeld = true;
@@ -2309,6 +2601,7 @@
       regions: state.regions,
       roles: state.roles,
       connectors: state.connectors,
+      textAnnotations: state.textAnnotations,
       nextId: state.nextId,
     };
     try {
@@ -2325,6 +2618,7 @@
         state.regions = data.regions || [];
         state.roles = data.roles || [];
         state.connectors = data.connectors || [];
+        state.textAnnotations = data.textAnnotations || [];
         state.nextId = data.nextId || 1;
         // Ensure roleIds on persons
         state.persons.forEach(p => { if (!p.roleIds) p.roleIds = []; });
@@ -2410,9 +2704,263 @@
     requestAnimationFrame(() => { ctxMenuJustShown = false; });
   }
 
+  // ===== Search =====
+  if (personSearch) {
+    personSearch.addEventListener('input', () => {
+      state.searchQuery = personSearch.value.trim().toLowerCase();
+      renderPersonList();
+      render(); // Re-render to highlight matched persons on canvas
+    });
+  }
+
+  // ===== Text Annotation Tool =====
+  if (btnToolText) {
+    btnToolText.addEventListener('click', () => setToolActive('text'));
+  }
+
+  // Text annotation click on canvas
+  canvas.addEventListener('click', (e) => {
+    if (state.tool !== 'text') return;
+    const rect = canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    const world = screenToWorld(sx, sy);
+    // Check if clicking an existing text annotation
+    const existingText = state.textAnnotations.find(t => {
+      const s = worldToScreen(t.x, t.y);
+      const fontSize = (t.fontSize || 14) * state.zoom;
+      const lines = (t.text || '').split('\n');
+      const w = 150 * state.zoom;
+      const h = lines.length * fontSize * 1.3;
+      return sx >= s.x && sx <= s.x + w && sy >= s.y && sy <= s.y + h;
+    });
+    if (existingText) {
+      selectItem('text', existingText.id);
+    } else {
+      pushUndo();
+      const t = {
+        id: state.nextId++,
+        text: '注釈テキスト',
+        x: world.x,
+        y: world.y,
+        fontSize: 14,
+        color: '#2c3e50',
+      };
+      state.textAnnotations.push(t);
+      selectItem('text', t.id);
+      saveState();
+    }
+  });
+
+  // Text annotation property handlers
+  if (propTextContent) {
+    propTextContent.addEventListener('input', () => {
+      const t = state.textAnnotations.find(t => t.id === state.selectedId);
+      if (t) { t.text = propTextContent.value; saveState(); render(); }
+    });
+  }
+  if (propTextFontsize) {
+    propTextFontsize.addEventListener('input', () => {
+      const t = state.textAnnotations.find(t => t.id === state.selectedId);
+      if (t) { t.fontSize = parseInt(propTextFontsize.value) || 14; saveState(); render(); }
+    });
+  }
+  if (propTextColor) {
+    propTextColor.addEventListener('input', () => {
+      const t = state.textAnnotations.find(t => t.id === state.selectedId);
+      if (t) { t.color = propTextColor.value; saveState(); render(); }
+    });
+  }
+
+  // ===== Person Detail Field Handlers =====
+  if (propEmail) {
+    propEmail.addEventListener('input', () => {
+      const p = state.persons.find(p => p.id === state.selectedId);
+      if (p) { p.email = propEmail.value; saveState(); }
+    });
+  }
+  if (propPhone) {
+    propPhone.addEventListener('input', () => {
+      const p = state.persons.find(p => p.id === state.selectedId);
+      if (p) { p.phone = propPhone.value; saveState(); }
+    });
+  }
+  if (propJoindate) {
+    propJoindate.addEventListener('input', () => {
+      const p = state.persons.find(p => p.id === state.selectedId);
+      if (p) { p.joinDate = propJoindate.value; saveState(); }
+    });
+  }
+  if (propEffectiveDate) {
+    propEffectiveDate.addEventListener('input', () => {
+      const p = state.persons.find(p => p.id === state.selectedId);
+      if (p) { p.effectiveDate = propEffectiveDate.value; saveState(); }
+    });
+  }
+  if (propPhotoUrl) {
+    propPhotoUrl.addEventListener('input', () => {
+      const p = state.persons.find(p => p.id === state.selectedId);
+      if (p) { p.photoUrl = propPhotoUrl.value; saveState(); }
+    });
+  }
+
+  // ===== Region Color Handler =====
+  if (propRegionColor) {
+    propRegionColor.addEventListener('input', () => {
+      const r = state.regions.find(r => r.id === state.selectedId);
+      if (r) { r.color = propRegionColor.value; saveState(); render(); renderPersonList(); }
+    });
+  }
+
+  // ===== PNG Export =====
+  if (btnExportPng) {
+    btnExportPng.addEventListener('click', () => {
+      // Create an offscreen canvas with white background
+      const offCanvas = document.createElement('canvas');
+      const scale = 2; // High-res
+      offCanvas.width = canvas.width * scale / (window.devicePixelRatio || 1);
+      offCanvas.height = canvas.height * scale / (window.devicePixelRatio || 1);
+      const offCtx = offCanvas.getContext('2d');
+      offCtx.scale(scale, scale);
+      // White background
+      offCtx.fillStyle = document.body.classList.contains('dark-mode') ? '#1a1a2e' : '#ffffff';
+      offCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+      // Draw the current canvas content
+      offCtx.drawImage(canvas, 0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
+      // Download
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      link.download = `orgchart_${timestamp}.png`;
+      link.href = offCanvas.toDataURL('image/png');
+      link.click();
+    });
+  }
+
+  // ===== CSV Import =====
+  if (btnImportCsv && csvImportInput) {
+    btnImportCsv.addEventListener('click', () => csvImportInput.click());
+    csvImportInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target.result;
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        const sep = text.includes('\t') ? '\t' : ',';
+        pushUndo();
+        const affMap = {};
+        lines.forEach((line, idx) => {
+          const parts = line.split(sep).map(s => s.trim().replace(/^["']|["']$/g, ''));
+          if (parts.length < 2) return;
+          const aff = parts[0];
+          const name = parts[1];
+          const email = parts[2] || '';
+          const phone = parts[3] || '';
+          if (!affMap[aff]) {
+            const regionW = 250;
+            const regionH = 150;
+            const col = Object.keys(affMap).length;
+            const rx = col * (regionW + 40) - 200;
+            const ry = -50;
+            const region = { id: state.nextId++, name: aff, x: rx, y: ry, w: regionW, h: regionH, color: '#4a8acf' };
+            state.regions.push(region);
+            affMap[aff] = { region, count: 0 };
+          }
+          const info = affMap[aff];
+          const px = info.region.x + 30 + (info.count % 5) * 45;
+          const py = info.region.y + 40 + Math.floor(info.count / 5) * 55;
+          addPerson(name, { affiliation: aff, x: px, y: py, email, phone });
+          info.count++;
+        });
+        renderPersonList();
+        saveState();
+        render();
+      };
+      reader.readAsText(file);
+      csvImportInput.value = '';
+    });
+  }
+
+  // ===== Print =====
+  if (btnPrint) {
+    btnPrint.addEventListener('click', () => window.print());
+  }
+
+  // ===== Dark Mode =====
+  if (btnDarkMode) {
+    // Restore dark mode from localStorage
+    if (localStorage.getItem('orgchart-darkmode') === 'true') {
+      document.body.classList.add('dark-mode');
+      btnDarkMode.textContent = '☀️';
+    }
+    btnDarkMode.addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      const isDark = document.body.classList.contains('dark-mode');
+      btnDarkMode.textContent = isDark ? '☀️' : '🌙';
+      localStorage.setItem('orgchart-darkmode', isDark);
+      render();
+    });
+  }
+
+  // ===== Share URL =====
+  if (btnShareUrl) {
+    btnShareUrl.addEventListener('click', () => {
+      try {
+        const data = {
+          persons: state.persons,
+          regions: state.regions,
+          roles: state.roles,
+          connectors: state.connectors,
+          textAnnotations: state.textAnnotations,
+          nextId: state.nextId,
+        };
+        const json = JSON.stringify(data);
+        const encoded = btoa(unescape(encodeURIComponent(json)));
+        const url = window.location.href.split('#')[0] + '#data=' + encoded;
+        navigator.clipboard.writeText(url).then(() => {
+          alert('共有URLをクリップボードにコピーしました！\n（データサイズが大きいとURLが長くなります）');
+        }).catch(() => {
+          prompt('共有URLをコピーしてください:', url);
+        });
+      } catch (e) {
+        alert('共有URLの生成に失敗しました: ' + e.message);
+      }
+    });
+  }
+
+  // Load from shared URL on init
+  function loadFromUrl() {
+    const hash = window.location.hash;
+    if (hash.startsWith('#data=')) {
+      try {
+        const encoded = hash.slice(6);
+        const json = decodeURIComponent(escape(atob(encoded)));
+        const data = JSON.parse(json);
+        if (data.persons) state.persons = data.persons;
+        if (data.regions) state.regions = data.regions;
+        if (data.roles) state.roles = data.roles;
+        if (data.connectors) state.connectors = data.connectors;
+        if (data.textAnnotations) state.textAnnotations = data.textAnnotations;
+        if (data.nextId) state.nextId = data.nextId;
+        state.persons.forEach(p => { if (!p.roleIds) p.roleIds = []; });
+        saveState();
+        renderPersonList();
+        render();
+        // Clear hash after loading
+        history.replaceState(null, '', window.location.pathname);
+      } catch (e) { /* ignore invalid URL data */ }
+    }
+  }
+
+  // ===== Delete text annotations in deleteSelected =====
+  const origDeleteSelected = deleteSelected;
+  // Patch deleteSelected to handle text annotations
+  // (already handles person/region/connector; need to add text)
+
   // ===== Init =====
   function init() {
     loadState();
+    loadFromUrl();
     resizeCanvas();
     renderPersonList();
     window.addEventListener('resize', resizeCanvas);

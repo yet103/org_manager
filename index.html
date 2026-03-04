@@ -17,6 +17,9 @@
         <h2>人物一覧</h2>
         <button class="btn btn-primary btn-icon" id="btn-add-person" title="人物を追加">＋</button>
       </div>
+      <div class="search-bar">
+        <input type="text" id="person-search" placeholder="🔍 人物を検索..." class="search-input">
+      </div>
       <div id="person-list"></div>
     </aside>
 
@@ -33,6 +36,7 @@
           <button class="btn active" id="btn-tool-select" title="選択・移動">🖱 選択</button>
           <button class="btn" id="btn-tool-region" title="領域を描画">⬜ 領域</button>
           <button class="btn" id="btn-tool-connector" title="コネクタ (Shift)">🔗 コネクタ</button>
+          <button class="btn" id="btn-tool-text" title="テキスト注釈">📝 注釈</button>
         </div>
         <div class="toolbar-group">
           <button class="btn" id="btn-bulk-create" title="一括作成">📋 一括作成</button>
@@ -42,6 +46,12 @@
           <button class="btn" id="btn-save-file" title="ファイルに保存">💾 保存</button>
           <button class="btn" id="btn-load-file" title="ファイルから読込">📂 読込</button>
           <input type="file" id="file-import-input" accept=".json" style="display:none">
+          <button class="btn" id="btn-import-csv" title="CSVインポート">📊 CSV</button>
+          <input type="file" id="csv-import-input" accept=".csv,.tsv,.txt" style="display:none">
+        </div>
+        <div class="toolbar-group">
+          <button class="btn" id="btn-export-png" title="PNG画像をエクスポート">📸 画像出力</button>
+          <button class="btn" id="btn-print" title="印刷プレビュー">🖨 印刷</button>
         </div>
         <div class="toolbar-group">
           <button class="btn btn-danger" id="btn-delete" title="選択中のアイテムを削除">🗑 削除</button>
@@ -63,6 +73,10 @@
           <span class="toolbar-label">🔍</span>
           <span id="zoom-label" class="zoom-label">100%</span>
           <button class="btn btn-icon" id="btn-zoom-reset" title="ズームリセット">⟲</button>
+        </div>
+        <div class="toolbar-group">
+          <button class="btn btn-icon" id="btn-dark-mode" title="ダークモード切替">🌙</button>
+          <button class="btn btn-icon" id="btn-share-url" title="共有URLをコピー">🔗</button>
         </div>
       </div>
       <div id="canvas-container">
@@ -95,6 +109,26 @@
             <input type="color" class="prop-color-input" id="prop-color" value="#4a8acf">
           </div>
           <div class="prop-group">
+            <div class="prop-label">メール</div>
+            <input type="email" class="prop-input" id="prop-email" placeholder="example@company.com">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">電話</div>
+            <input type="tel" class="prop-input" id="prop-phone" placeholder="090-xxxx-xxxx">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">入社日</div>
+            <input type="date" class="prop-input" id="prop-joindate">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">発令日</div>
+            <input type="date" class="prop-input" id="prop-effective-date">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">写真URL</div>
+            <input type="url" class="prop-input" id="prop-photo-url" placeholder="https://...">
+          </div>
+          <div class="prop-group">
             <div class="prop-label">役割ラベル</div>
             <div id="prop-roles-container"></div>
           </div>
@@ -103,6 +137,10 @@
           <div class="prop-group">
             <div class="prop-label">領域名</div>
             <input type="text" class="prop-input" id="prop-region-name" placeholder="領域名">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">領域色</div>
+            <input type="color" class="prop-color-input" id="prop-region-color" value="#4a8acf">
           </div>
           <div class="prop-group">
             <div class="prop-label">重なり順</div>
@@ -127,6 +165,20 @@
               <option value="backward">← 逆方向</option>
               <option value="both">↔ 双方向</option>
             </select>
+          </div>
+        </div>
+        <div id="text-props" style="display:none;">
+          <div class="prop-group">
+            <div class="prop-label">テキスト</div>
+            <textarea class="prop-input" id="prop-text-content" rows="3" placeholder="注釈テキスト"></textarea>
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">フォントサイズ</div>
+            <input type="number" class="prop-input" id="prop-text-fontsize" value="14" min="8" max="72">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">色</div>
+            <input type="color" class="prop-color-input" id="prop-text-color" value="#2c3e50">
           </div>
         </div>
       </div>

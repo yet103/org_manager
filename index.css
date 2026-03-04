@@ -589,3 +589,107 @@ body {
   font-size: 14px;
   min-width: 28px;
 }
+
+/* ===== Search Bar ===== */
+.search-bar {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.search-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-family: var(--font-family);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+}
+
+.person-item.search-highlight {
+  background: rgba(255, 200, 50, 0.3);
+  font-weight: 700;
+}
+
+/* ===== Dark Mode ===== */
+body.dark-mode {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-sidebar: #1a1a2e;
+  --border-color: #2a2a4a;
+  --grid-color: rgba(100, 130, 180, 0.15);
+  --grid-color-strong: rgba(100, 130, 180, 0.08);
+  --accent: #5d9cec;
+  --accent-hover: #4a8ad8;
+  --text-primary: #e0e0e0;
+  --text-secondary: #8899aa;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .btn {
+  background: #2a2a4a;
+  color: #e0e0e0;
+  border-color: #3a3a5a;
+}
+
+body.dark-mode .btn:hover {
+  background: #3a3a5a;
+}
+
+body.dark-mode .btn.active {
+  background: #5d9cec;
+  color: #fff;
+}
+
+body.dark-mode .prop-input,
+body.dark-mode .search-input {
+  background: #2a2a4a;
+  color: #e0e0e0;
+  border-color: #3a3a5a;
+}
+
+body.dark-mode .modal-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+body.dark-mode .modal-panel {
+  background: #1a1a2e;
+  color: #e0e0e0;
+}
+
+body.dark-mode .modal-textarea {
+  background: #2a2a4a;
+  color: #e0e0e0;
+  border-color: #3a3a5a;
+}
+
+/* ===== Print Layout ===== */
+@media print {
+
+  #sidebar-left,
+  #sidebar-right,
+  #toolbar {
+    display: none !important;
+  }
+
+  #canvas-area {
+    margin: 0 !important;
+  }
+
+  #canvas-container {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  body {
+    overflow: visible !important;
+  }
+}
