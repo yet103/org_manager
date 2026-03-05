@@ -63,7 +63,7 @@ body {
 }
 
 #sidebar-left .panel-header h2 {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -82,7 +82,7 @@ body {
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background var(--transition);
-  font-size: 10px;
+  font-size: 14px;
 }
 
 .person-item:hover {
@@ -95,8 +95,8 @@ body {
 }
 
 .person-item .color-dot {
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -106,7 +106,7 @@ body {
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 600;
   color: #4a8acf;
   cursor: pointer;
@@ -221,7 +221,7 @@ body {
 }
 
 .prop-label {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -233,7 +233,7 @@ body {
   padding: 6px 8px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: 16px;
   font-family: var(--font-family);
   color: var(--text-primary);
   background: var(--bg-primary);
@@ -257,7 +257,7 @@ body {
 
 #no-selection-msg {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 16px;
   text-align: center;
   padding: 24px 16px;
 }
@@ -273,7 +273,7 @@ body {
   border-radius: var(--radius-sm);
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 16px;
   font-family: var(--font-family);
   cursor: pointer;
   transition: all var(--transition);
@@ -304,7 +304,7 @@ body {
 
 .btn-icon {
   padding: 5px 8px;
-  font-size: 14px;
+  font-size: 18px;
 }
 
 .btn-danger {
@@ -322,7 +322,7 @@ body {
 }
 
 .zoom-label {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   min-width: 36px;
@@ -601,7 +601,7 @@ body {
   padding: 4px 8px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: 14px;
   font-family: var(--font-family);
   background: var(--bg-primary);
   color: var(--text-primary);

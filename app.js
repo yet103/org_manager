@@ -623,14 +623,14 @@
 
         if (r.name) {
           ctx.fillStyle = rc;
-          ctx.font = '9px "Segoe UI", "Meiryo", sans-serif';
+          ctx.font = '13px "Segoe UI", "Meiryo", sans-serif';
           ctx.textAlign = 'left';
           ctx.textBaseline = 'bottom';
           const label = r.name + (personCount > 0 ? ` (${personCount})` : '');
           ctx.fillText(label, s.x + 4, s.y - 3);
         } else if (personCount > 0) {
           ctx.fillStyle = rc;
-          ctx.font = '8px "Segoe UI", "Meiryo", sans-serif';
+          ctx.font = '12px "Segoe UI", "Meiryo", sans-serif';
           ctx.textAlign = 'left';
           ctx.textBaseline = 'bottom';
           ctx.fillText(`(${personCount})`, s.x + 4, s.y - 3);
@@ -666,7 +666,7 @@
         if (r.name) {
           const top = corners[0];
           ctx.fillStyle = rc;
-          ctx.font = '9px "Segoe UI", "Meiryo", sans-serif';
+          ctx.font = '13px "Segoe UI", "Meiryo", sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
           const label = r.name + (personCount > 0 ? ` (${personCount})` : '');
@@ -852,16 +852,16 @@
     let labelY = bodyBottom + 4;
     if (name) {
       ctx.fillStyle = '#2c3e50';
-      ctx.font = '9px "Segoe UI", "Meiryo", sans-serif';
+      ctx.font = '13px "Segoe UI", "Meiryo", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillText(name, cx, labelY);
-      labelY += 12;
+      labelY += 16;
     }
 
     // Role badges
     if (roles && roles.length > 0) {
-      ctx.font = '7px "Segoe UI", "Meiryo", sans-serif';
+      ctx.font = '10px "Segoe UI", "Meiryo", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       roles.forEach(role => {
