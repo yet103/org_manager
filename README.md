@@ -15,6 +15,7 @@
   <img src="https://img.shields.io/badge/Server-不要-success?style=flat-square" alt="No Server">
   <img src="https://img.shields.io/badge/Data-自動保存-blue?style=flat-square" alt="Auto Save">
   <img src="https://img.shields.io/badge/Theme-Light%20%2F%20Dark-8B5CF6?style=flat-square" alt="Dark Mode">
+  <img src="https://img.shields.io/badge/Version-v1.4.0-orange?style=flat-square" alt="Version">
 </p>
 
 ---
@@ -244,7 +245,12 @@ org_manager/
 
 ### ▶ ダウンロードして使う
 
-1. [ZIPをダウンロード](https://github.com/yet103/org_manager/archive/refs/heads/main.zip)
+| バージョン | リンク | 日付 |
+|:--|:--|:--|
+| **v1.4.0**（最新） | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.4.0.zip) | 2026-04-15 |
+| 最新開発版 | [ZIPダウンロード（main）](https://github.com/yet103/org_manager/archive/refs/heads/main.zip) | — |
+
+1. ZIPをダウンロード
 2. 解凍して `index.html` をダブルクリック
 3. 完了！🎉
 
@@ -257,6 +263,43 @@ cd org_manager
 ```
 
 > 💡 サーバーは**一切不要**です。`file://` プロトコルで直接動作します。
+
+---
+
+## 📋 更新履歴
+
+### v1.4.0（2026-04-15）
+- 🐛 **複数選択したオブジェクトのグループ移動を修正** — 範囲選択やCtrl+クリックで選んだ全オブジェクトがまとめてドラッグ移動可能に
+- ✨ **注釈テキストの選択・ドラッグ移動に対応** — 選択ツールで注釈テキストをクリック・移動できるように
+- ✨ **領域名のフォントサイズ・テキスト揃え設定** — 領域プロパティで文字サイズと左/中央/右揃えを変更可能に
+- ✨ **等間隔配置ボタン追加** — 水平・垂直の等間隔配置で整列時の重なりを解消
+
+### v1.3.0（2026-03-05）
+- ✨ 人物検索・ハイライト表示
+- ✨ PNG画像エクスポート
+- ✨ CSVインポート
+- ✨ ダークモード
+- ✨ テキスト注釈ツール
+- ✨ キーボードショートカット一式
+
+### v1.2.0（2026-03-04）
+- ✨ 役割管理システム
+- ✨ 一括作成機能
+- ✨ 領域の重なり順（Z-Order）制御
+- ✨ ツリー構造サイドバー
+- ✨ JSON保存・読込
+
+### v1.1.0（2026-03-03）
+- ✨ コネクタ（カギ状接続線）
+- ✨ ウェイポイント経路編集
+- ✨ 領域のネスト連動移動
+- ✨ 範囲選択・整列機能
+
+### v1.0.0（2026-03-03）
+- 🎉 初回リリース
+- Canvas描画エンジン
+- 人物・領域・ズーム・パン・Undo/Redo
+- スクエア／クォータービュー切替
 
 ---
 
