@@ -1432,6 +1432,9 @@
         return;
       }
 
+      // Check if clicking on any multi-selected item (person or region)
+      const hasMultiSelection = state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0;
+
       const person = hitTestPerson(pos.x, pos.y);
       if (person) {
         // Ctrl+Click: toggle in multi-selection
@@ -1442,17 +1445,32 @@
           } else {
             state.multiSelection.personIds.push(person.id);
           }
+          updatePropsPanel();
           renderPersonList();
           render();
           return;
         }
-        // Multi-selection group drag
+        // Multi-selection group drag (person is in multi-selection)
         if (state.multiSelection.personIds.includes(person.id)) {
           pushUndo();
           const startWorld = screenToWorld(pos.x, pos.y);
           state.dragging = { type: 'multi', lastWorld: startWorld };
           container.style.cursor = 'grabbing';
           return;
+        }
+        // Person is not in multi-selection, but is inside a multi-selected region
+        if (hasMultiSelection) {
+          const inSelectedRegion = state.multiSelection.regionIds.some(rid => {
+            const r = state.regions.find(r => r.id === rid);
+            return r && person.x >= r.x && person.x <= r.x + r.w && person.y >= r.y && person.y <= r.y + r.h;
+          });
+          if (inSelectedRegion) {
+            pushUndo();
+            const startWorld = screenToWorld(pos.x, pos.y);
+            state.dragging = { type: 'multi', lastWorld: startWorld };
+            container.style.cursor = 'grabbing';
+            return;
+          }
         }
         selectItem('person', person.id);
         state.multiSelection = { personIds: [], regionIds: [] };
@@ -1477,6 +1495,7 @@
           } else {
             state.multiSelection.regionIds.push(region.id);
           }
+          updatePropsPanel();
           renderPersonList();
           render();
           return;
@@ -1681,21 +1700,24 @@
         const world = screenToWorld(pos.x, pos.y);
         const dx = world.x - state.dragging.lastWorld.x;
         const dy = world.y - state.dragging.lastWorld.y;
-        // Move selected persons
+        // Track which persons have been moved to prevent double-moves
+        const movedPersonIds = new Set();
+        // Move explicitly selected persons
         state.multiSelection.personIds.forEach(pid => {
           const p = state.persons.find(p => p.id === pid);
-          if (p) { p.x += dx; p.y += dy; }
+          if (p) { p.x += dx; p.y += dy; movedPersonIds.add(pid); }
         });
-        // Move selected regions + their internal persons
+        // Move selected regions + their internal persons (avoid double-move)
         state.multiSelection.regionIds.forEach(rid => {
           const r = state.regions.find(r => r.id === rid);
           if (r) {
-            // Find persons inside region (not already in multi-selection)
+            // Find persons inside region that haven't been moved yet
             state.persons.forEach(p => {
-              if (!state.multiSelection.personIds.includes(p.id) &&
+              if (!movedPersonIds.has(p.id) &&
                 p.x >= r.x && p.x <= r.x + r.w &&
                 p.y >= r.y && p.y <= r.y + r.h) {
                 p.x += dx; p.y += dy;
+                movedPersonIds.add(p.id);
               }
             });
             r.x += dx; r.y += dy;
