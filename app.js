@@ -2367,31 +2367,31 @@
     return items;
   }
 
+  // Helper: move a region (+ its internal persons) or person to new coordinates
+  function applyMove(item, newX, newY) {
+    if (item.type === 'region') {
+      const dx = newX - item.obj.x;
+      const dy = newY - item.obj.y;
+      // Move persons inside the region
+      state.persons.forEach(p => {
+        if (p.x >= item.obj.x && p.x <= item.obj.x + item.obj.w &&
+          p.y >= item.obj.y && p.y <= item.obj.y + item.obj.h) {
+          p.x += dx;
+          p.y += dy;
+        }
+      });
+      item.obj.x = newX;
+      item.obj.y = newY;
+    } else {
+      item.obj.x = newX;
+      item.obj.y = newY;
+    }
+  }
+
   function alignItems(direction) {
     const items = getMultiSelectedItems();
     if (items.length < 2) return;
     pushUndo();
-
-    // Helper: move a region and its internal persons together
-    function applyMove(item, newX, newY) {
-      if (item.type === 'region') {
-        const dx = newX - item.obj.x;
-        const dy = newY - item.obj.y;
-        // Move persons inside the region
-        state.persons.forEach(p => {
-          if (p.x >= item.obj.x && p.x <= item.obj.x + item.obj.w &&
-            p.y >= item.obj.y && p.y <= item.obj.y + item.obj.h) {
-            p.x += dx;
-            p.y += dy;
-          }
-        });
-        item.obj.x = newX;
-        item.obj.y = newY;
-      } else {
-        item.obj.x = newX;
-        item.obj.y = newY;
-      }
-    }
 
     if (direction === 'top') {
       const minY = Math.min(...items.map(i => i.y));
@@ -2427,6 +2427,52 @@
   if (btnAlignRight) btnAlignRight.addEventListener('click', () => alignItems('right'));
   if (btnAlignCenterH) btnAlignCenterH.addEventListener('click', () => alignItems('center-h'));
   if (btnAlignCenterV) btnAlignCenterV.addEventListener('click', () => alignItems('center-v'));
+
+  // ===== Distribution (Equal Spacing) =====
+  const btnDistributeH = document.getElementById('btn-distribute-h');
+  const btnDistributeV = document.getElementById('btn-distribute-v');
+
+  function distributeItems(axis) {
+    const items = getMultiSelectedItems();
+    if (items.length < 3) return; // Need at least 3 items to distribute
+    pushUndo();
+
+    if (axis === 'horizontal') {
+      // Sort by x position
+      items.sort((a, b) => a.x - b.x);
+      const first = items[0];
+      const last = items[items.length - 1];
+      const totalSpan = (last.x + last.w) - first.x;
+      const totalItemWidth = items.reduce((sum, i) => sum + i.w, 0);
+      const gap = (totalSpan - totalItemWidth) / (items.length - 1);
+      let currentX = first.x;
+      items.forEach((item, idx) => {
+        if (idx === 0) { currentX += item.w + gap; return; }
+        applyMove(item, currentX, item.obj.y);
+        currentX += item.w + gap;
+      });
+    } else if (axis === 'vertical') {
+      // Sort by y position
+      items.sort((a, b) => a.y - b.y);
+      const first = items[0];
+      const last = items[items.length - 1];
+      const totalSpan = (last.y + last.h) - first.y;
+      const totalItemHeight = items.reduce((sum, i) => sum + i.h, 0);
+      const gap = (totalSpan - totalItemHeight) / (items.length - 1);
+      let currentY = first.y;
+      items.forEach((item, idx) => {
+        if (idx === 0) { currentY += item.h + gap; return; }
+        applyMove(item, item.obj.x, currentY);
+        currentY += item.h + gap;
+      });
+    }
+
+    saveState();
+    render();
+  }
+
+  if (btnDistributeH) btnDistributeH.addEventListener('click', () => distributeItems('horizontal'));
+  if (btnDistributeV) btnDistributeV.addEventListener('click', () => distributeItems('vertical'));
 
   // ===== Property Panel Events =====
   propName.addEventListener('input', () => {
