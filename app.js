@@ -89,6 +89,8 @@
   const propPhotoUrl = document.getElementById('prop-photo-url');
   const propRegionName = document.getElementById('prop-region-name');
   const propRegionColor = document.getElementById('prop-region-color');
+  const propRegionFontsize = document.getElementById('prop-region-fontsize');
+  const propRegionTextalign = document.getElementById('prop-region-textalign');
   const propRolesContainer = document.getElementById('prop-roles-container');
   const propTextContent = document.getElementById('prop-text-content');
   const propTextFontsize = document.getElementById('prop-text-fontsize');
@@ -623,11 +625,16 @@
 
         if (r.name) {
           ctx.fillStyle = rc;
-          ctx.font = '13px "Segoe UI", "Meiryo", sans-serif';
-          ctx.textAlign = 'left';
+          const rFontSize = r.fontSize || 13;
+          ctx.font = `${rFontSize}px "Segoe UI", "Meiryo", sans-serif`;
+          const rAlign = r.textAlign || 'left';
+          ctx.textAlign = rAlign;
           ctx.textBaseline = 'bottom';
           const label = r.name + (personCount > 0 ? ` (${personCount})` : '');
-          ctx.fillText(label, s.x + 4, s.y - 3);
+          let labelX = s.x + 4;
+          if (rAlign === 'center') labelX = (s.x + e.x) / 2;
+          else if (rAlign === 'right') labelX = e.x - 4;
+          ctx.fillText(label, labelX, s.y - 3);
         } else if (personCount > 0) {
           ctx.fillStyle = rc;
           ctx.font = '12px "Segoe UI", "Meiryo", sans-serif';
@@ -1082,6 +1089,8 @@
       regionProps.style.display = 'block';
       propRegionName.value = r.name || '';
       if (propRegionColor) propRegionColor.value = r.color || '#4a8acf';
+      if (propRegionFontsize) propRegionFontsize.value = r.fontSize || 13;
+      if (propRegionTextalign) propRegionTextalign.value = r.textAlign || 'left';
     } else if (state.selectedType === 'connector') {
       const c = state.connectors.find(c => c.id === state.selectedId);
       if (!c || !connectorProps) return;
@@ -2381,6 +2390,19 @@
     const r = state.regions.find(r => r.id === state.selectedId);
     if (r) { r.name = propRegionName.value; saveState(); render(); }
   });
+
+  if (propRegionFontsize) {
+    propRegionFontsize.addEventListener('input', () => {
+      const r = state.regions.find(r => r.id === state.selectedId);
+      if (r) { r.fontSize = parseInt(propRegionFontsize.value) || 13; saveState(); render(); }
+    });
+  }
+  if (propRegionTextalign) {
+    propRegionTextalign.addEventListener('change', () => {
+      const r = state.regions.find(r => r.id === state.selectedId);
+      if (r) { r.textAlign = propRegionTextalign.value; saveState(); render(); }
+    });
+  }
 
   // ===== Bulk Create =====
   btnBulkCreate.addEventListener('click', () => {
