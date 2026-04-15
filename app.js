@@ -1304,6 +1304,22 @@
     return null;
   }
 
+  function hitTestTextAnnotation(sx, sy) {
+    for (let i = state.textAnnotations.length - 1; i >= 0; i--) {
+      const t = state.textAnnotations[i];
+      const s = worldToScreen(t.x, t.y);
+      const fontSize = (t.fontSize || 14) * state.zoom;
+      const lines = (t.text || '').split('\n');
+      ctx.font = `${fontSize}px "Segoe UI", "Meiryo", sans-serif`;
+      const maxW = Math.max(...lines.map(l => ctx.measureText(l).width), 20);
+      const totalH = lines.length * fontSize * 1.3;
+      if (sx >= s.x - 2 && sx <= s.x + maxW + 4 && sy >= s.y - 2 && sy <= s.y + totalH + 4) {
+        return t;
+      }
+    }
+    return null;
+  }
+
   // ===== Resize Handle Hit Test =====
   function hitTestResizeHandle(sx, sy) {
     if (state.selectedType !== 'region') return null;
@@ -1551,6 +1567,21 @@
         return;
       }
 
+      // Check for text annotation click in select mode
+      const textAnn = hitTestTextAnnotation(pos.x, pos.y);
+      if (textAnn) {
+        selectItem('text', textAnn.id);
+        state.multiSelection = { personIds: [], regionIds: [] };
+        pushUndo();
+        state.dragging = {
+          type: 'text',
+          id: textAnn.id,
+          lastWorld: screenToWorld(pos.x, pos.y),
+        };
+        container.style.cursor = 'grabbing';
+        return;
+      }
+
       // Check for connector click in select mode
       const connector = hitTestConnector(pos.x, pos.y);
       if (connector) {
@@ -1686,6 +1717,17 @@
           wp.y = world.y;
           render();
         }
+      } else if (state.dragging.type === 'text') {
+        const t = state.textAnnotations.find(t => t.id === state.dragging.id);
+        if (t) {
+          const world = screenToWorld(pos.x, pos.y);
+          const dx = world.x - state.dragging.lastWorld.x;
+          const dy = world.y - state.dragging.lastWorld.y;
+          t.x += dx;
+          t.y += dy;
+          state.dragging.lastWorld = world;
+          render();
+        }
       } else if (state.dragging.type === 'resize') {
         const r = state.regions.find(r => r.id === state.dragging.id);
         if (r) {
@@ -1729,10 +1771,11 @@
       }
       const person = hitTestPerson(pos.x, pos.y);
       const region = hitTestRegion(pos.x, pos.y);
+      const textAnn = hitTestTextAnnotation(pos.x, pos.y);
       const wpHandle = hitTestWaypointHandle(pos.x, pos.y);
       const mpHandle = hitTestMidpointHandle(pos.x, pos.y);
       const connectorLine = hitTestConnector(pos.x, pos.y);
-      container.style.cursor = wpHandle ? 'move' : (mpHandle ? 'pointer' : (person ? 'grab' : (region ? 'move' : (connectorLine ? 'pointer' : 'default'))));
+      container.style.cursor = wpHandle ? 'move' : (mpHandle ? 'pointer' : (person ? 'grab' : (region ? 'move' : (textAnn ? 'grab' : (connectorLine ? 'pointer' : 'default')))));
     } else if (state.tool === 'region') {
       container.style.cursor = 'crosshair';
     } else if (state.tool === 'connector') {
