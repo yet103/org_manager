@@ -188,7 +188,7 @@
     state.textAnnotations.forEach(t => {
       const s = worldToScreen(t.x, t.y);
       const isSelected = state.selectedType === 'text' && state.selectedId === t.id;
-      const fontSize = (t.fontSize || 14) * state.zoom;
+      const fontSize = (t.fontSize || 9) * state.zoom;
       ctx.font = `${fontSize}px "Segoe UI", "Meiryo", sans-serif`;
       ctx.fillStyle = t.color || '#2c3e50';
       ctx.textAlign = 'left';
@@ -602,10 +602,6 @@
     state.regions.forEach(r => {
       const isSelected = (state.selectedType === 'region' && state.selectedId === r.id) || state.multiSelection.regionIds.includes(r.id);
       const rc = r.color || '#4a8acf';
-      // Count persons in this region
-      const personCount = state.persons.filter(p =>
-        p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h
-      ).length;
 
       if (state.viewMode === 'square') {
         const s = worldToScreen(r.x, r.y);
@@ -630,17 +626,10 @@
           const rAlign = r.textAlign || 'left';
           ctx.textAlign = rAlign;
           ctx.textBaseline = 'bottom';
-          const label = r.name + (personCount > 0 ? ` (${personCount})` : '');
           let labelX = s.x + 4;
           if (rAlign === 'center') labelX = (s.x + e.x) / 2;
           else if (rAlign === 'right') labelX = e.x - 4;
-          ctx.fillText(label, labelX, s.y - 3);
-        } else if (personCount > 0) {
-          ctx.fillStyle = rc;
-          ctx.font = '12px "Segoe UI", "Meiryo", sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'bottom';
-          ctx.fillText(`(${personCount})`, s.x + 4, s.y - 3);
+          ctx.fillText(r.name, labelX, s.y - 3);
         }
 
         // Resize handles
@@ -676,8 +665,7 @@
           ctx.font = '13px "Segoe UI", "Meiryo", sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
-          const label = r.name + (personCount > 0 ? ` (${personCount})` : '');
-          ctx.fillText(label, top.x, top.y - 4);
+          ctx.fillText(r.name, top.x, top.y - 4);
         }
 
         // Resize handles in iso
@@ -1102,7 +1090,7 @@
       if (!t || !textProps) return;
       textProps.style.display = 'block';
       if (propTextContent) propTextContent.value = t.text || '';
-      if (propTextFontsize) propTextFontsize.value = t.fontSize || 14;
+      if (propTextFontsize) propTextFontsize.value = t.fontSize || 9;
       if (propTextColor) propTextColor.value = t.color || '#2c3e50';
     } else if (state.multiSelection.personIds.length > 0) {
       // Multi-selection: show color picker for batch color change
@@ -1308,7 +1296,7 @@
     for (let i = state.textAnnotations.length - 1; i >= 0; i--) {
       const t = state.textAnnotations[i];
       const s = worldToScreen(t.x, t.y);
-      const fontSize = (t.fontSize || 14) * state.zoom;
+      const fontSize = (t.fontSize || 9) * state.zoom;
       const lines = (t.text || '').split('\n');
       ctx.font = `${fontSize}px "Segoe UI", "Meiryo", sans-serif`;
       const maxW = Math.max(...lines.map(l => ctx.measureText(l).width), 20);
@@ -2876,7 +2864,7 @@
         text: '注釈テキスト',
         x: world.x,
         y: world.y,
-        fontSize: 14,
+        fontSize: 9,
         color: '#2c3e50',
       };
       state.textAnnotations.push(t);
