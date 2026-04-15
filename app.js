@@ -17,7 +17,7 @@
     regionDraw: null,
     connectorDraw: null, // { fromRegionId, fromSide, currentX, currentY }
     rangeSelect: null,
-    multiSelection: { personIds: [], regionIds: [] },
+    multiSelection: { personIds: [], regionIds: [], textIds: [] },
     shiftHeld: false,
     prevTool: null, // for shift-key temp connector mode
     addingWaypoints: false, // show "+" handles for adding waypoints
@@ -187,7 +187,7 @@
   function drawTextAnnotations() {
     state.textAnnotations.forEach(t => {
       const s = worldToScreen(t.x, t.y);
-      const isSelected = state.selectedType === 'text' && state.selectedId === t.id;
+      const isSelected = (state.selectedType === 'text' && state.selectedId === t.id) || (state.multiSelection.textIds || []).includes(t.id);
       const fontSize = (t.fontSize || 9) * state.zoom;
       ctx.font = `${fontSize}px "Segoe UI", "Meiryo", sans-serif`;
       ctx.fillStyle = t.color || '#2c3e50';
@@ -965,7 +965,7 @@
     state.nextId = snap.nextId;
     state.persons.forEach(p => { if (!p.roleIds) p.roleIds = []; });
     clearSelection();
-    state.multiSelection = { personIds: [], regionIds: [] };
+    state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
     renderPersonList();
     saveState();
     render();
@@ -1382,7 +1382,7 @@
         const connector = hitTestConnector(pos.x, pos.y);
         if (connector) {
           selectItem('connector', connector.id);
-          state.multiSelection = { personIds: [], regionIds: [] };
+          state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
           showConnectorContextMenu(e.clientX, e.clientY, connector);
           return;
         }
@@ -1421,7 +1421,7 @@
       }
 
       // Check if clicking on any multi-selected item (person or region)
-      const hasMultiSelection = state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0;
+      const hasMultiSelection = state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0 || (state.multiSelection.textIds || []).length > 0;
 
       const person = hitTestPerson(pos.x, pos.y);
       if (person) {
@@ -1461,7 +1461,7 @@
           }
         }
         selectItem('person', person.id);
-        state.multiSelection = { personIds: [], regionIds: [] };
+        state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
         pushUndo();
         state.dragging = {
           type: 'person',
@@ -1497,7 +1497,7 @@
           return;
         }
         selectItem('region', region.id);
-        state.multiSelection = { personIds: [], regionIds: [] };
+        state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
         const s = worldToScreen(region.x, region.y);
         const childPersonIds = state.persons.filter(p =>
           p.x >= region.x && p.x <= region.x + region.w &&
@@ -1578,7 +1578,7 @@
       const textAnn = hitTestTextAnnotation(pos.x, pos.y);
       if (textAnn) {
         selectItem('text', textAnn.id);
-        state.multiSelection = { personIds: [], regionIds: [] };
+        state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
         pushUndo();
         state.dragging = {
           type: 'text',
@@ -1593,14 +1593,14 @@
       const connector = hitTestConnector(pos.x, pos.y);
       if (connector) {
         selectItem('connector', connector.id);
-        state.multiSelection = { personIds: [], regionIds: [] };
+        state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
         render();
         return;
       }
 
       // Empty space left drag -> range selection
       clearSelection();
-      state.multiSelection = { personIds: [], regionIds: [] };
+      state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
       state.rangeSelect = {
         startX: pos.x,
         startY: pos.y,
@@ -1711,6 +1711,11 @@
             r.x += dx; r.y += dy;
           }
         });
+        // Move selected text annotations
+        (state.multiSelection.textIds || []).forEach(tid => {
+          const t = state.textAnnotations.find(t => t.id === tid);
+          if (t) { t.x += dx; t.y += dy; }
+        });
         state.dragging.lastWorld = world;
         render();
       } else if (state.dragging.type === 'pan') {
@@ -1817,7 +1822,15 @@
         r.x >= wx1 && r.x + r.w <= wx2 && r.y >= wy1 && r.y + r.h <= wy2
       ).map(r => r.id);
 
-      state.multiSelection = { personIds: selectedPersonIds, regionIds: selectedRegionIds };
+      const selectedTextIds = state.textAnnotations.filter(t => {
+        const fontSize = t.fontSize || 9;
+        const lines = (t.text || '').split('\n');
+        const maxW = 80; // approximate width
+        const totalH = lines.length * fontSize * 1.3;
+        return t.x >= wx1 && t.x + maxW <= wx2 && t.y >= wy1 && t.y + totalH <= wy2;
+      }).map(t => t.id);
+
+      state.multiSelection = { personIds: selectedPersonIds, regionIds: selectedRegionIds, textIds: selectedTextIds };
       state.rangeSelect = null;
       container.style.cursor = 'default';
       updatePropsPanel();
@@ -2073,7 +2086,7 @@
 
   function deleteSelected() {
     // Multi-selection delete
-    if (state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0) {
+    if (state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0 || (state.multiSelection.textIds || []).length > 0) {
       pushUndo();
       // Delete multi-selected persons
       state.multiSelection.personIds.forEach(pid => {
@@ -2086,7 +2099,11 @@
         );
         state.regions = state.regions.filter(r => r.id !== rid);
       });
-      state.multiSelection = { personIds: [], regionIds: [] };
+      // Delete multi-selected text annotations
+      (state.multiSelection.textIds || []).forEach(tid => {
+        state.textAnnotations = state.textAnnotations.filter(t => t.id !== tid);
+      });
+      state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
       clearSelection();
       renderPersonList();
       saveState();
@@ -2125,10 +2142,10 @@
   if (btnRedo) btnRedo.addEventListener('click', redo);
 
   // ===== Clipboard for Copy/Paste =====
-  let clipboard = { persons: [], regions: [] };
+  let clipboard = { persons: [], regions: [], texts: [] };
 
   function copySelected() {
-    clipboard = { persons: [], regions: [] };
+    clipboard = { persons: [], regions: [], texts: [] };
     // Copy from multi-selection
     if (state.multiSelection.personIds.length > 0) {
       clipboard.persons = state.multiSelection.personIds.map(id =>
@@ -2140,20 +2157,28 @@
         JSON.parse(JSON.stringify(state.regions.find(r => r.id === id)))
       ).filter(Boolean);
     }
+    if ((state.multiSelection.textIds || []).length > 0) {
+      clipboard.texts = state.multiSelection.textIds.map(id =>
+        JSON.parse(JSON.stringify(state.textAnnotations.find(t => t.id === id)))
+      ).filter(Boolean);
+    }
     // Copy single selection
-    if (clipboard.persons.length === 0 && clipboard.regions.length === 0) {
+    if (clipboard.persons.length === 0 && clipboard.regions.length === 0 && clipboard.texts.length === 0) {
       if (state.selectedType === 'person') {
         const p = state.persons.find(p => p.id === state.selectedId);
         if (p) clipboard.persons.push(JSON.parse(JSON.stringify(p)));
       } else if (state.selectedType === 'region') {
         const r = state.regions.find(r => r.id === state.selectedId);
         if (r) clipboard.regions.push(JSON.parse(JSON.stringify(r)));
+      } else if (state.selectedType === 'text') {
+        const t = state.textAnnotations.find(t => t.id === state.selectedId);
+        if (t) clipboard.texts.push(JSON.parse(JSON.stringify(t)));
       }
     }
   }
 
   function pasteClipboard() {
-    if (clipboard.persons.length === 0 && clipboard.regions.length === 0) return;
+    if (clipboard.persons.length === 0 && clipboard.regions.length === 0 && clipboard.texts.length === 0) return;
     pushUndo();
     const offset = 30;
     const newPersonIds = [];
@@ -2173,7 +2198,13 @@
       state.regions.push(nr);
       newRegionIds.push(nr.id);
     });
-    state.multiSelection = { personIds: newPersonIds, regionIds: newRegionIds };
+    const newTextIds = [];
+    clipboard.texts.forEach(t => {
+      const nt = { id: state.nextId++, text: t.text, x: t.x + offset, y: t.y + offset, fontSize: t.fontSize || 9, color: t.color || '#2c3e50' };
+      state.textAnnotations.push(nt);
+      newTextIds.push(nt.id);
+    });
+    state.multiSelection = { personIds: newPersonIds, regionIds: newRegionIds, textIds: newTextIds };
     clearSelection();
     renderPersonList();
     saveState();
@@ -2183,6 +2214,7 @@
   function selectAll() {
     state.multiSelection.personIds = state.persons.map(p => p.id);
     state.multiSelection.regionIds = state.regions.map(r => r.id);
+    state.multiSelection.textIds = state.textAnnotations.map(t => t.id);
     clearSelection();
     renderPersonList();
     render();
@@ -2190,7 +2222,7 @@
 
   function nudgeSelected(dx, dy) {
     const items = [];
-    if (state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0) {
+    if (state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0 || (state.multiSelection.textIds || []).length > 0) {
       pushUndo();
       state.multiSelection.personIds.forEach(pid => {
         const p = state.persons.find(p => p.id === pid);
@@ -2199,6 +2231,10 @@
       state.multiSelection.regionIds.forEach(rid => {
         const r = state.regions.find(r => r.id === rid);
         if (r) { r.x += dx; r.y += dy; }
+      });
+      (state.multiSelection.textIds || []).forEach(tid => {
+        const t = state.textAnnotations.find(t => t.id === tid);
+        if (t) { t.x += dx; t.y += dy; }
       });
     } else if (state.selectedType === 'person') {
       pushUndo();
@@ -2256,7 +2292,7 @@
     } else if (e.key === 'Escape') {
       e.preventDefault();
       clearSelection();
-      state.multiSelection = { personIds: [], regionIds: [] };
+      state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
       if (state.tool !== 'select') setToolActive('select');
       renderPersonList();
       render();
@@ -2350,6 +2386,13 @@
       );
       if (!insideSelectedRegion) {
         items.push({ type: 'person', obj: p, x: p.x, y: p.y, w: 0, h: 0 });
+      }
+    });
+    // Include text annotations
+    (state.multiSelection.textIds || []).forEach(tid => {
+      const t = state.textAnnotations.find(t => t.id === tid);
+      if (t) {
+        items.push({ type: 'text', obj: t, x: t.x, y: t.y, w: 0, h: 0 });
       }
     });
     return items;
