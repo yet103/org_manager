@@ -21,7 +21,7 @@
     regionDraw: null,
     connectorDraw: null, // { fromRegionId, fromSide, currentX, currentY }
     rangeSelect: null,
-    multiSelection: { personIds: [], regionIds: [], textIds: [] },
+    multiSelection: { personIds: [], regionIds: [], textIds: [], connectorIds: [] },
     shiftHeld: false,
     prevTool: null, // for shift-key temp connector mode
     addingWaypoints: false, // show "+" handles for adding waypoints
@@ -354,7 +354,8 @@
       if (!isOnVisibleLayer(c)) return;
       const points = getConnectorPoints(c);
       if (!points) return;
-      const isSelected = state.selectedType === 'connector' && state.selectedId === c.id;
+      const isMultiSel = (state.multiSelection.connectorIds || []).includes(c.id);
+      const isSelected = (state.selectedType === 'connector' && state.selectedId === c.id) || isMultiSel;
 
       ctx.strokeStyle = isSelected ? '#e06c75' : '#5a9fd4';
       ctx.lineWidth = isSelected ? 2.5 : 1.8;
@@ -1027,7 +1028,7 @@
     state.nextId = snap.nextId;
     state.persons.forEach(p => { if (!p.roleIds) p.roleIds = []; });
     clearSelection();
-    state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
+    state.multiSelection = { personIds: [], regionIds: [], textIds: [], connectorIds: [] };
     renderPersonList();
     saveState();
     render();
@@ -1473,7 +1474,7 @@
         const connector = hitTestConnector(pos.x, pos.y);
         if (connector) {
           selectItem('connector', connector.id);
-          state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
+          state.multiSelection = { personIds: [], regionIds: [], textIds: [], connectorIds: [] };
           showConnectorContextMenu(e.clientX, e.clientY, connector);
           return;
         }
@@ -1512,7 +1513,7 @@
       }
 
       // Check if clicking on any multi-selected item (person or region)
-      const hasMultiSelection = state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0 || (state.multiSelection.textIds || []).length > 0;
+      const hasMultiSelection = state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0 || (state.multiSelection.textIds || []).length > 0 || (state.multiSelection.connectorIds || []).length > 0;
 
       const person = hitTestPerson(pos.x, pos.y);
       if (person) {
@@ -1552,7 +1553,7 @@
           }
         }
         selectItem('person', person.id);
-        state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
+        state.multiSelection = { personIds: [], regionIds: [], textIds: [], connectorIds: [] };
         pushUndo();
         state.dragging = {
           type: 'person',
@@ -1588,7 +1589,7 @@
           return;
         }
         selectItem('region', region.id);
-        state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
+        state.multiSelection = { personIds: [], regionIds: [], textIds: [], connectorIds: [] };
         const s = worldToScreen(region.x, region.y);
         const childPersonIds = state.persons.filter(p =>
           p.x >= region.x && p.x <= region.x + region.w &&
@@ -1668,8 +1669,28 @@
       // Check for text annotation click in select mode
       const textAnn = hitTestTextAnnotation(pos.x, pos.y);
       if (textAnn) {
+        // Ctrl+Click: toggle in multi-selection
+        if (e.ctrlKey) {
+          const idx = (state.multiSelection.textIds || []).indexOf(textAnn.id);
+          if (idx >= 0) {
+            state.multiSelection.textIds.splice(idx, 1);
+          } else {
+            state.multiSelection.textIds.push(textAnn.id);
+          }
+          updatePropsPanel();
+          render();
+          return;
+        }
+        // Multi-selection group drag
+        if ((state.multiSelection.textIds || []).includes(textAnn.id)) {
+          pushUndo();
+          const startWorld = screenToWorld(pos.x, pos.y);
+          state.dragging = { type: 'multi', lastWorld: startWorld };
+          container.style.cursor = 'grabbing';
+          return;
+        }
         selectItem('text', textAnn.id);
-        state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
+        state.multiSelection = { personIds: [], regionIds: [], textIds: [], connectorIds: [] };
         pushUndo();
         state.dragging = {
           type: 'text',
@@ -1683,21 +1704,39 @@
       // Check for connector click in select mode
       const connector = hitTestConnector(pos.x, pos.y);
       if (connector) {
+        // Ctrl+Click: toggle freeForm connector in multi-selection
+        if (e.ctrlKey && connector.freeForm) {
+          const idx = (state.multiSelection.connectorIds || []).indexOf(connector.id);
+          if (idx >= 0) {
+            state.multiSelection.connectorIds.splice(idx, 1);
+          } else {
+            state.multiSelection.connectorIds.push(connector.id);
+          }
+          updatePropsPanel();
+          render();
+          return;
+        }
+        // Multi-selection group drag (connector in multi-selection)
+        if (connector.freeForm && (state.multiSelection.connectorIds || []).includes(connector.id)) {
+          pushUndo();
+          const startWorld = screenToWorld(pos.x, pos.y);
+          state.dragging = { type: 'multi', lastWorld: startWorld };
+          container.style.cursor = 'grabbing';
+          return;
+        }
         selectItem('connector', connector.id);
-        state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
+        state.multiSelection = { personIds: [], regionIds: [], textIds: [], connectorIds: [] };
         if (connector.freeForm) {
           const endpoint = hitTestFreeFormEndpoint(pos.x, pos.y, connector);
           pushUndo();
           if (endpoint) {
-            // Endpoint drag (re-edit)
             state.dragging = {
               type: 'freeform-endpoint',
               connector: connector,
-              endpoint: endpoint, // 'from' or 'to'
+              endpoint: endpoint,
             };
             container.style.cursor = 'crosshair';
           } else {
-            // Whole line move
             state.dragging = {
               type: 'freeform-move',
               connector: connector,
@@ -1712,7 +1751,7 @@
 
       // Empty space left drag -> range selection
       clearSelection();
-      state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
+      state.multiSelection = { personIds: [], regionIds: [], textIds: [], connectorIds: [] };
       state.rangeSelect = {
         startX: pos.x,
         startY: pos.y,
@@ -1840,6 +1879,11 @@
         (state.multiSelection.textIds || []).forEach(tid => {
           const t = state.textAnnotations.find(t => t.id === tid);
           if (t) { t.x += dx; t.y += dy; }
+        });
+        // Move selected freeForm connectors
+        (state.multiSelection.connectorIds || []).forEach(cid => {
+          const c = state.connectors.find(c => c.id === cid);
+          if (c && c.freeForm) { c.fromX += dx; c.fromY += dy; c.toX += dx; c.toY += dy; }
         });
         state.dragging.lastWorld = world;
         render();
@@ -1977,7 +2021,16 @@
         return t.x >= wx1 && t.x + maxW <= wx2 && t.y >= wy1 && t.y + totalH <= wy2;
       }).map(t => t.id);
 
-      state.multiSelection = { personIds: selectedPersonIds, regionIds: selectedRegionIds, textIds: selectedTextIds };
+      const selectedConnectorIds = state.connectors.filter(c => {
+        if (!c.freeForm) return false;
+        const minX = Math.min(c.fromX, c.toX);
+        const maxX = Math.max(c.fromX, c.toX);
+        const minY = Math.min(c.fromY, c.toY);
+        const maxY = Math.max(c.fromY, c.toY);
+        return minX >= wx1 && maxX <= wx2 && minY >= wy1 && maxY <= wy2;
+      }).map(c => c.id);
+
+      state.multiSelection = { personIds: selectedPersonIds, regionIds: selectedRegionIds, textIds: selectedTextIds, connectorIds: selectedConnectorIds };
       state.rangeSelect = null;
       container.style.cursor = 'default';
       updatePropsPanel();
@@ -2279,7 +2332,7 @@
 
   function deleteSelected() {
     // Multi-selection delete
-    if (state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0 || (state.multiSelection.textIds || []).length > 0) {
+    if (state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0 || (state.multiSelection.textIds || []).length > 0 || (state.multiSelection.connectorIds || []).length > 0) {
       pushUndo();
       // Delete multi-selected persons
       state.multiSelection.personIds.forEach(pid => {
@@ -2296,7 +2349,11 @@
       (state.multiSelection.textIds || []).forEach(tid => {
         state.textAnnotations = state.textAnnotations.filter(t => t.id !== tid);
       });
-      state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
+      // Delete multi-selected connectors
+      (state.multiSelection.connectorIds || []).forEach(cid => {
+        state.connectors = state.connectors.filter(c => c.id !== cid);
+      });
+      state.multiSelection = { personIds: [], regionIds: [], textIds: [], connectorIds: [] };
       clearSelection();
       renderPersonList();
       saveState();
@@ -2338,7 +2395,7 @@
   let clipboard = { persons: [], regions: [], texts: [] };
 
   function copySelected() {
-    clipboard = { persons: [], regions: [], texts: [] };
+    clipboard = { persons: [], regions: [], texts: [], connectors: [] };
     // Copy from multi-selection
     if (state.multiSelection.personIds.length > 0) {
       clipboard.persons = state.multiSelection.personIds.map(id =>
@@ -2355,8 +2412,13 @@
         JSON.parse(JSON.stringify(state.textAnnotations.find(t => t.id === id)))
       ).filter(Boolean);
     }
+    if ((state.multiSelection.connectorIds || []).length > 0) {
+      clipboard.connectors = state.multiSelection.connectorIds.map(id =>
+        JSON.parse(JSON.stringify(state.connectors.find(c => c.id === id)))
+      ).filter(Boolean);
+    }
     // Copy single selection
-    if (clipboard.persons.length === 0 && clipboard.regions.length === 0 && clipboard.texts.length === 0) {
+    if (clipboard.persons.length === 0 && clipboard.regions.length === 0 && clipboard.texts.length === 0 && clipboard.connectors.length === 0) {
       if (state.selectedType === 'person') {
         const p = state.persons.find(p => p.id === state.selectedId);
         if (p) clipboard.persons.push(JSON.parse(JSON.stringify(p)));
@@ -2366,12 +2428,15 @@
       } else if (state.selectedType === 'text') {
         const t = state.textAnnotations.find(t => t.id === state.selectedId);
         if (t) clipboard.texts.push(JSON.parse(JSON.stringify(t)));
+      } else if (state.selectedType === 'connector') {
+        const c = state.connectors.find(c => c.id === state.selectedId);
+        if (c && c.freeForm) clipboard.connectors.push(JSON.parse(JSON.stringify(c)));
       }
     }
   }
 
   function pasteClipboard() {
-    if (clipboard.persons.length === 0 && clipboard.regions.length === 0 && clipboard.texts.length === 0) return;
+    if (clipboard.persons.length === 0 && clipboard.regions.length === 0 && clipboard.texts.length === 0 && (clipboard.connectors || []).length === 0) return;
     pushUndo();
     const offset = 30;
     const newPersonIds = [];
@@ -2397,7 +2462,13 @@
       state.textAnnotations.push(nt);
       newTextIds.push(nt.id);
     });
-    state.multiSelection = { personIds: newPersonIds, regionIds: newRegionIds, textIds: newTextIds };
+    const newConnectorIds = [];
+    (clipboard.connectors || []).forEach(c => {
+      const nc = { ...JSON.parse(JSON.stringify(c)), id: state.nextId++, fromX: c.fromX + offset, fromY: c.fromY + offset, toX: c.toX + offset, toY: c.toY + offset };
+      state.connectors.push(nc);
+      newConnectorIds.push(nc.id);
+    });
+    state.multiSelection = { personIds: newPersonIds, regionIds: newRegionIds, textIds: newTextIds, connectorIds: newConnectorIds };
     clearSelection();
     renderPersonList();
     saveState();
@@ -2408,6 +2479,7 @@
     state.multiSelection.personIds = state.persons.map(p => p.id);
     state.multiSelection.regionIds = state.regions.map(r => r.id);
     state.multiSelection.textIds = state.textAnnotations.map(t => t.id);
+    state.multiSelection.connectorIds = state.connectors.filter(c => c.freeForm).map(c => c.id);
     clearSelection();
     renderPersonList();
     render();
@@ -2415,7 +2487,7 @@
 
   function nudgeSelected(dx, dy) {
     const items = [];
-    if (state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0 || (state.multiSelection.textIds || []).length > 0) {
+    if (state.multiSelection.personIds.length > 0 || state.multiSelection.regionIds.length > 0 || (state.multiSelection.textIds || []).length > 0 || (state.multiSelection.connectorIds || []).length > 0) {
       pushUndo();
       state.multiSelection.personIds.forEach(pid => {
         const p = state.persons.find(p => p.id === pid);
@@ -2428,6 +2500,10 @@
       (state.multiSelection.textIds || []).forEach(tid => {
         const t = state.textAnnotations.find(t => t.id === tid);
         if (t) { t.x += dx; t.y += dy; }
+      });
+      (state.multiSelection.connectorIds || []).forEach(cid => {
+        const c = state.connectors.find(c => c.id === cid);
+        if (c && c.freeForm) { c.fromX += dx; c.fromY += dy; c.toX += dx; c.toY += dy; }
       });
     } else if (state.selectedType === 'person') {
       pushUndo();
@@ -2485,7 +2561,7 @@
     } else if (e.key === 'Escape') {
       e.preventDefault();
       clearSelection();
-      state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
+      state.multiSelection = { personIds: [], regionIds: [], textIds: [], connectorIds: [] };
       if (state.tool !== 'select') setToolActive('select');
       renderPersonList();
       render();
@@ -3517,7 +3593,7 @@
     state.zoom = tabData.zoom || 1.0;
     state.persons.forEach(p => { if (!p.roleIds) p.roleIds = []; });
     clearSelection();
-    state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
+    state.multiSelection = { personIds: [], regionIds: [], textIds: [], connectorIds: [] };
     updateZoomLabel();
     renderPersonList();
     renderLayerList();
