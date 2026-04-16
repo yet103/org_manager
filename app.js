@@ -2809,7 +2809,7 @@
   });
 
   if (propRegionFontsize) {
-    propRegionFontsize.addEventListener('input', () => {
+    propRegionFontsize.addEventListener('change', () => {
       const r = state.regions.find(r => r.id === state.selectedId);
       if (r) { r.fontSize = parseInt(propRegionFontsize.value) || 13; saveState(); render(); }
     });
@@ -3196,7 +3196,7 @@
     // Check if clicking an existing text annotation
     const existingText = state.textAnnotations.find(t => {
       const s = worldToScreen(t.x, t.y);
-      const fontSize = (t.fontSize || 14) * state.zoom;
+      const fontSize = (t.fontSize || 9) * state.zoom;
       const lines = (t.text || '').split('\n');
       const w = 150 * state.zoom;
       const h = lines.length * fontSize * 1.3;
@@ -3229,9 +3229,9 @@
     });
   }
   if (propTextFontsize) {
-    propTextFontsize.addEventListener('input', () => {
+    propTextFontsize.addEventListener('change', () => {
       const t = state.textAnnotations.find(t => t.id === state.selectedId);
-      if (t) { t.fontSize = parseInt(propTextFontsize.value) || 14; saveState(); render(); }
+      if (t) { t.fontSize = parseInt(propTextFontsize.value) || 9; saveState(); render(); }
     });
   }
   if (propTextColor) {
