@@ -11,6 +11,8 @@
     textAnnotations: [],
     layers: [{ id: 1, name: 'メイン', visible: true, locked: false }],
     activeLayerId: 1,
+    tabs: [],
+    activeTabId: null,
     viewMode: 'square', // 'square' | 'quarter'
     tool: 'select',     // 'select' | 'region' | 'connector' | 'text'
     selectedId: null,
@@ -2081,6 +2083,8 @@
         connectors: state.connectors,
         textAnnotations: state.textAnnotations,
         layers: state.layers,
+        tabs: state.tabs,
+        activeTabId: state.activeTabId,
         nextId: state.nextId,
         exportedAt: new Date().toISOString(),
       };
@@ -2122,10 +2126,20 @@
             state.layers = data.layers;
             state.activeLayerId = data.layers[0].id;
           }
+          if (data.tabs && data.tabs.length > 0) {
+            state.tabs = data.tabs;
+            state.activeTabId = data.activeTabId || data.tabs[0].id;
+          } else {
+            state.tabs = [];
+            state.activeTabId = null;
+          }
           if (data.nextId) state.nextId = data.nextId;
           clearSelection();
+          initTabs();
           saveState();
           renderPersonList();
+          renderLayerList();
+          renderTabList();
           updatePropsPanel();
           render();
         } catch (err) {
@@ -2851,6 +2865,22 @@
 
   // ===== LocalStorage =====
   function saveState() {
+    // Save current tab data first
+    if (state.activeTabId !== null) {
+      const tab = state.tabs.find(t => t.id === state.activeTabId);
+      if (tab) {
+        tab.data = {
+          persons: JSON.parse(JSON.stringify(state.persons)),
+          regions: JSON.parse(JSON.stringify(state.regions)),
+          connectors: JSON.parse(JSON.stringify(state.connectors)),
+          textAnnotations: JSON.parse(JSON.stringify(state.textAnnotations)),
+          layers: JSON.parse(JSON.stringify(state.layers)),
+          activeLayerId: state.activeLayerId,
+          canvasOffset: { ...state.canvasOffset },
+          zoom: state.zoom,
+        };
+      }
+    }
     const data = {
       persons: state.persons,
       regions: state.regions,
@@ -2858,6 +2888,8 @@
       connectors: state.connectors,
       textAnnotations: state.textAnnotations,
       layers: state.layers,
+      tabs: state.tabs,
+      activeTabId: state.activeTabId,
       nextId: state.nextId,
     };
     try {
@@ -2878,12 +2910,15 @@
         state.nextId = data.nextId || 1;
         if (data.layers && data.layers.length > 0) {
           state.layers = data.layers;
-          state.activeLayerId = data.layers[0].id;
+          state.activeLayerId = data.activeLayerId || data.layers[0].id;
         } else {
           state.layers = [{ id: 1, name: 'メイン', visible: true, locked: false }];
           state.activeLayerId = 1;
         }
-        // Ensure roleIds on persons
+        if (data.tabs && data.tabs.length > 0) {
+          state.tabs = data.tabs;
+          state.activeTabId = data.activeTabId || data.tabs[0].id;
+        }
         state.persons.forEach(p => { if (!p.roleIds) p.roleIds = []; });
       }
     } catch (e) { /* ignore */ }
@@ -3339,13 +3374,162 @@
     });
   }
 
+  // ===== Tab Management =====
+  const tabListEl = document.getElementById('tab-list');
+  const btnAddTab = document.getElementById('btn-add-tab');
+
+  function getTabData() {
+    return {
+      persons: JSON.parse(JSON.stringify(state.persons)),
+      regions: JSON.parse(JSON.stringify(state.regions)),
+      connectors: JSON.parse(JSON.stringify(state.connectors)),
+      textAnnotations: JSON.parse(JSON.stringify(state.textAnnotations)),
+      layers: JSON.parse(JSON.stringify(state.layers)),
+      activeLayerId: state.activeLayerId,
+      canvasOffset: { ...state.canvasOffset },
+      zoom: state.zoom,
+    };
+  }
+
+  function loadTabData(tabData) {
+    state.persons = tabData.persons || [];
+    state.regions = tabData.regions || [];
+    state.connectors = tabData.connectors || [];
+    state.textAnnotations = tabData.textAnnotations || [];
+    state.layers = tabData.layers || [{ id: 1, name: 'メイン', visible: true, locked: false }];
+    state.activeLayerId = tabData.activeLayerId || (state.layers[0] ? state.layers[0].id : 1);
+    state.canvasOffset = tabData.canvasOffset || { x: 0, y: 0 };
+    state.zoom = tabData.zoom || 1.0;
+    state.persons.forEach(p => { if (!p.roleIds) p.roleIds = []; });
+    clearSelection();
+    state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
+    updateZoomLabel();
+    renderPersonList();
+    renderLayerList();
+    render();
+  }
+
+  function saveCurrentTabData() {
+    if (state.activeTabId === null) return;
+    const tab = state.tabs.find(t => t.id === state.activeTabId);
+    if (tab) {
+      tab.data = getTabData();
+    }
+  }
+
+  function switchTab(tabId) {
+    if (tabId === state.activeTabId) return;
+    saveCurrentTabData();
+    state.activeTabId = tabId;
+    const tab = state.tabs.find(t => t.id === tabId);
+    if (tab && tab.data) {
+      loadTabData(tab.data);
+    }
+    saveState();
+    renderTabList();
+  }
+
+  function initTabs() {
+    if (state.tabs.length === 0) {
+      const tabId = state.nextId++;
+      const tab = { id: tabId, name: 'メイン', data: getTabData() };
+      state.tabs.push(tab);
+      state.activeTabId = tabId;
+    }
+  }
+
+  function renderTabList() {
+    if (!tabListEl) return;
+    tabListEl.innerHTML = '';
+    state.tabs.forEach(tab => {
+      const item = document.createElement('div');
+      item.className = 'tab-item' + (tab.id === state.activeTabId ? ' active' : '');
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'tab-name';
+      nameSpan.textContent = tab.name;
+      nameSpan.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        const input = document.createElement('input');
+        input.style.cssText = 'font-size:12px;padding:1px 4px;border:1px solid var(--primary-color);border-radius:3px;outline:none;width:80px;';
+        input.value = tab.name;
+        input.addEventListener('blur', () => {
+          tab.name = input.value || tab.name;
+          saveState();
+          renderTabList();
+        });
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') input.blur();
+        });
+        nameSpan.replaceWith(input);
+        input.focus();
+        input.select();
+      });
+
+      item.addEventListener('click', () => switchTab(tab.id));
+
+      item.appendChild(nameSpan);
+
+      if (state.tabs.length > 1) {
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'tab-close';
+        closeBtn.textContent = '✕';
+        closeBtn.title = 'タブを閉じる';
+        closeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (state.tabs.length <= 1) return;
+          if (!confirm(`タブ「${tab.name}」を削除しますか？`)) return;
+          pushUndo();
+          state.tabs = state.tabs.filter(t => t.id !== tab.id);
+          if (state.activeTabId === tab.id) {
+            state.activeTabId = state.tabs[0].id;
+            loadTabData(state.tabs[0].data);
+          }
+          saveState();
+          renderTabList();
+        });
+        item.appendChild(closeBtn);
+      }
+
+      tabListEl.appendChild(item);
+    });
+  }
+
+  if (btnAddTab) {
+    btnAddTab.addEventListener('click', () => {
+      saveCurrentTabData();
+      const newId = state.nextId++;
+      const newTab = {
+        id: newId,
+        name: `タブ ${state.tabs.length + 1}`,
+        data: {
+          persons: [],
+          regions: [],
+          connectors: [],
+          textAnnotations: [],
+          layers: [{ id: state.nextId++, name: 'メイン', visible: true, locked: false }],
+          activeLayerId: state.nextId - 1,
+          canvasOffset: { x: 0, y: 0 },
+          zoom: 1.0,
+        },
+      };
+      state.tabs.push(newTab);
+      state.activeTabId = newId;
+      loadTabData(newTab.data);
+      saveState();
+      renderTabList();
+    });
+  }
+
   // ===== Init =====
   function init() {
     loadState();
     loadFromUrl();
+    initTabs();
     resizeCanvas();
     renderPersonList();
     renderLayerList();
+    renderTabList();
     window.addEventListener('resize', resizeCanvas);
   }
 
