@@ -460,6 +460,20 @@
             ctx.stroke();
           }
         }
+        // FreeForm endpoint handles (draggable to re-edit)
+        if (c.freeForm) {
+          const fromS = worldToScreen(c.fromX, c.fromY);
+          const toS = worldToScreen(c.toX, c.toY);
+          [fromS, toS].forEach(pt => {
+            ctx.fillStyle = '#3b82f6';
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          });
+        }
       }
     });
   }
@@ -514,6 +528,16 @@
         }
       }
     }
+    return null;
+  }
+
+  function hitTestFreeFormEndpoint(sx, sy, connector) {
+    if (!connector || !connector.freeForm) return null;
+    const threshold = 10;
+    const fromS = worldToScreen(connector.fromX, connector.fromY);
+    const toS = worldToScreen(connector.toX, connector.toY);
+    if (Math.hypot(sx - fromS.x, sy - fromS.y) < threshold) return 'from';
+    if (Math.hypot(sx - toS.x, sy - toS.y) < threshold) return 'to';
     return null;
   }
 
@@ -1090,6 +1114,13 @@
   }
 
   function updatePropsPanel() {
+    function getSelectedObject() {
+      if (state.selectedType === 'person') return state.persons.find(p => p.id === state.selectedId);
+      if (state.selectedType === 'region') return state.regions.find(r => r.id === state.selectedId);
+      if (state.selectedType === 'connector') return state.connectors.find(c => c.id === state.selectedId);
+      if (state.selectedType === 'text') return state.textAnnotations.find(t => t.id === state.selectedId);
+      return null;
+    }
     noSelectionMsg.style.display = 'none';
     personProps.style.display = 'none';
     regionProps.style.display = 'none';
@@ -1142,6 +1173,26 @@
       propColor.value = firstP ? firstP.color : '#4a90d9';
     } else {
       noSelectionMsg.style.display = 'block';
+    }
+
+    // Layer assign selector
+    const layerAssignProps = document.getElementById('layer-assign-props');
+    const propLayerAssign = document.getElementById('prop-layer-assign');
+    if (layerAssignProps && propLayerAssign) {
+      const selectedObj = getSelectedObject();
+      if (selectedObj && state.layers.length > 0) {
+        layerAssignProps.style.display = 'block';
+        propLayerAssign.innerHTML = '';
+        state.layers.forEach(l => {
+          const opt = document.createElement('option');
+          opt.value = l.id;
+          opt.textContent = l.name;
+          if (l.id === (selectedObj.layerId || state.layers[0].id)) opt.selected = true;
+          propLayerAssign.appendChild(opt);
+        });
+      } else {
+        layerAssignProps.style.display = 'none';
+      }
     }
   }
 
@@ -1634,6 +1685,27 @@
       if (connector) {
         selectItem('connector', connector.id);
         state.multiSelection = { personIds: [], regionIds: [], textIds: [] };
+        if (connector.freeForm) {
+          const endpoint = hitTestFreeFormEndpoint(pos.x, pos.y, connector);
+          pushUndo();
+          if (endpoint) {
+            // Endpoint drag (re-edit)
+            state.dragging = {
+              type: 'freeform-endpoint',
+              connector: connector,
+              endpoint: endpoint, // 'from' or 'to'
+            };
+            container.style.cursor = 'crosshair';
+          } else {
+            // Whole line move
+            state.dragging = {
+              type: 'freeform-move',
+              connector: connector,
+              lastWorld: screenToWorld(pos.x, pos.y),
+            };
+            container.style.cursor = 'grabbing';
+          }
+        }
         render();
         return;
       }
@@ -1796,6 +1868,28 @@
           state.dragging.lastWorld = world;
           render();
         }
+      } else if (state.dragging.type === 'freeform-move') {
+        const c = state.dragging.connector;
+        const world = screenToWorld(pos.x, pos.y);
+        const dx = world.x - state.dragging.lastWorld.x;
+        const dy = world.y - state.dragging.lastWorld.y;
+        c.fromX += dx;
+        c.fromY += dy;
+        c.toX += dx;
+        c.toY += dy;
+        state.dragging.lastWorld = world;
+        render();
+      } else if (state.dragging.type === 'freeform-endpoint') {
+        const c = state.dragging.connector;
+        const world = screenToWorld(pos.x, pos.y);
+        if (state.dragging.endpoint === 'from') {
+          c.fromX = world.x;
+          c.fromY = world.y;
+        } else {
+          c.toX = world.x;
+          c.toY = world.y;
+        }
+        render();
       } else if (state.dragging.type === 'resize') {
         const r = state.regions.find(r => r.id === state.dragging.id);
         if (r) {
@@ -3371,6 +3465,27 @@
       state.activeLayerId = newId;
       saveState();
       renderLayerList();
+    });
+  }
+
+  // ===== Layer Assign Event =====
+  const propLayerAssignEl = document.getElementById('prop-layer-assign');
+  if (propLayerAssignEl) {
+    propLayerAssignEl.addEventListener('change', () => {
+      const newLayerId = parseInt(propLayerAssignEl.value);
+      if (isNaN(newLayerId)) return;
+      // Apply to single selected object
+      let obj = null;
+      if (state.selectedType === 'person') obj = state.persons.find(p => p.id === state.selectedId);
+      else if (state.selectedType === 'region') obj = state.regions.find(r => r.id === state.selectedId);
+      else if (state.selectedType === 'connector') obj = state.connectors.find(c => c.id === state.selectedId);
+      else if (state.selectedType === 'text') obj = state.textAnnotations.find(t => t.id === state.selectedId);
+      if (obj) {
+        pushUndo();
+        obj.layerId = newLayerId;
+        saveState();
+        render();
+      }
     });
   }
 

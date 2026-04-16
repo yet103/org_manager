@@ -37,12 +37,10 @@
       </div>
       <div id="toolbar">
         <div class="toolbar-group">
-          <span class="toolbar-label">ビュー</span>
           <button class="btn active" id="btn-square-view" title="スクエアビュー">□ スクエア</button>
           <button class="btn" id="btn-quarter-view" title="クォータービュー">◇ クォーター</button>
         </div>
         <div class="toolbar-group">
-          <span class="toolbar-label">ツール</span>
           <button class="btn active" id="btn-tool-select" title="選択・移動">🖱 選択</button>
           <button class="btn" id="btn-tool-region" title="領域を描画">⬜ 領域</button>
           <button class="btn" id="btn-tool-connector" title="図形描画 (Shift)">✏️ 図形描画</button>
@@ -212,6 +210,13 @@
           <div class="prop-group">
             <div class="prop-label">色</div>
             <input type="color" class="prop-color-input" id="prop-text-color" value="#2c3e50">
+          </div>
+        </div>
+        <div id="layer-assign-props" style="display:none;">
+          <hr style="margin:8px 0;border-color:var(--border-color);">
+          <div class="prop-group">
+            <div class="prop-label">レイヤー</div>
+            <select class="prop-input" id="prop-layer-assign"></select>
           </div>
         </div>
       </div>
