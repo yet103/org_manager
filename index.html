@@ -11,14 +11,17 @@
 
 <body>
   <div id="app">
-    <!-- Left Sidebar: Person List -->
+    <!-- Left Sidebar: Object List -->
     <aside id="sidebar-left">
       <div class="panel-header">
-        <h2>人物一覧</h2>
-        <button class="btn btn-primary btn-icon" id="btn-add-person" title="人物を追加">＋</button>
+        <h2>オブジェクト一覧</h2>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-primary btn-icon" id="btn-add-person" title="人物を追加">👤＋</button>
+          <button class="btn btn-primary btn-icon" id="btn-add-item" title="アイテムを追加">📦＋</button>
+        </div>
       </div>
       <div class="search-bar">
-        <input type="text" id="person-search" placeholder="🔍 人物を検索..." class="search-input">
+        <input type="text" id="person-search" placeholder="🔍 検索..." class="search-input">
       </div>
       <div id="person-list"></div>
       <div class="sidebar-separator"></div>
@@ -142,6 +145,34 @@
           <div class="prop-group">
             <div class="prop-label">役割ラベル</div>
             <div id="prop-roles-container"></div>
+          </div>
+        </div>
+        <div id="item-props" style="display:none;">
+          <div class="prop-group">
+            <div class="prop-label">名前</div>
+            <input type="text" class="prop-input" id="prop-item-name" placeholder="アイテム名">
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">アイコン</div>
+            <select class="prop-input" id="prop-item-icon">
+              <option value="server">🖥 サーバ</option>
+              <option value="pc">💻 PC</option>
+              <option value="printer">🖨 プリンタ</option>
+              <option value="phone">📱 電話</option>
+              <option value="cloud">☁ クラウド</option>
+              <option value="database">🗄 DB</option>
+              <option value="folder">📁 フォルダ</option>
+              <option value="gear">⚙ 設定</option>
+              <option value="star">⭐ スター</option>
+            </select>
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">説明</div>
+            <textarea class="prop-input" id="prop-item-description" rows="3" placeholder="説明"></textarea>
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">色</div>
+            <input type="color" class="prop-color-input" id="prop-item-color" value="#4a8acf">
           </div>
         </div>
         <div id="region-props" style="display:none;">

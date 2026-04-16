@@ -44,6 +44,7 @@
   const personListEl = document.getElementById('person-list');
 
   const btnAddPerson = document.getElementById('btn-add-person');
+  const btnAddItem = document.getElementById('btn-add-item');
   const btnSquareView = document.getElementById('btn-square-view');
   const btnQuarterView = document.getElementById('btn-quarter-view');
   const btnToolSelect = document.getElementById('btn-tool-select');
@@ -838,7 +839,12 @@
       const isSelected = state.selectedType === 'person' && state.selectedId === p.id;
       const isMultiSelected = state.multiSelection.personIds.includes(p.id);
       const personRoles = (p.roleIds || []).map(rid => state.roles.find(r => r.id === rid)).filter(Boolean);
-      drawPersonIcon(s.x, s.y, p.color, isSelected || isMultiSelected, p.name, personRoles);
+      const iconType = p.icon || 'person';
+      if (iconType === 'person' || !p.itemType || p.itemType === 'person') {
+        drawPersonIcon(s.x, s.y, p.color, isSelected || isMultiSelected, p.name, personRoles);
+      } else {
+        drawItemIcon(s.x, s.y, p.color, isSelected || isMultiSelected, p.name, iconType);
+      }
     });
   }
 
@@ -952,6 +958,228 @@
     ctx.restore();
   }
 
+  // ===== Item Icon Drawing =====
+  const ITEM_ICONS = ['server','pc','printer','phone','cloud','database','folder','gear','star'];
+
+  function drawItemIcon(cx, cy, color, selected, name, iconType) {
+    const size = 20;
+    ctx.save();
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.beginPath();
+    ctx.ellipse(cx + 1, cy + size + 4, size * 0.6, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw icon based on type
+    switch (iconType) {
+      case 'server': drawIconServer(cx, cy, size, color); break;
+      case 'pc': drawIconPC(cx, cy, size, color); break;
+      case 'printer': drawIconPrinter(cx, cy, size, color); break;
+      case 'phone': drawIconPhone(cx, cy, size, color); break;
+      case 'cloud': drawIconCloud(cx, cy, size, color); break;
+      case 'database': drawIconDatabase(cx, cy, size, color); break;
+      case 'folder': drawIconFolder(cx, cy, size, color); break;
+      case 'gear': drawIconGear(cx, cy, size, color); break;
+      case 'star': drawIconStar(cx, cy, size, color); break;
+      default: drawIconServer(cx, cy, size, color); break;
+    }
+
+    // Selection highlight
+    if (selected) {
+      ctx.strokeStyle = '#4a8acf';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.rect(cx - size - 4, cy - size - 4, size * 2 + 8, size * 2 + 8);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Name label
+    if (name) {
+      ctx.fillStyle = '#2c3e50';
+      ctx.font = '13px "Segoe UI", "Meiryo", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(name, cx, cy + size + 6);
+    }
+    ctx.restore();
+  }
+
+  function drawIconServer(cx, cy, s, color) {
+    const w = s * 1.2, h = s * 1.6;
+    const x = cx - w / 2, y = cy - h / 2;
+    const grad = ctx.createLinearGradient(x, y, x + w, y + h);
+    grad.addColorStop(0, lightenColor(color, 20));
+    grad.addColorStop(1, darkenColor(color, 20));
+    ctx.fillStyle = grad;
+    roundRect(ctx, x, y, w, h, 3); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 3); ctx.stroke();
+    // Horizontal lines (rack divisions)
+    ctx.strokeStyle = darkenColor(color, 15); ctx.lineWidth = 0.7;
+    for (let i = 1; i < 3; i++) {
+      ctx.beginPath(); ctx.moveTo(x + 3, y + h * i / 3); ctx.lineTo(x + w - 3, y + h * i / 3); ctx.stroke();
+    }
+    // LED dots
+    ctx.fillStyle = '#4caf50';
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath(); ctx.arc(x + w - 6, y + h * (i + 0.5) / 3, 2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function drawIconPC(cx, cy, s, color) {
+    const mw = s * 1.4, mh = s * 1.0;
+    const mx = cx - mw / 2, my = cy - s * 0.6;
+    const grad = ctx.createLinearGradient(mx, my, mx + mw, my + mh);
+    grad.addColorStop(0, lightenColor(color, 15)); grad.addColorStop(1, darkenColor(color, 15));
+    ctx.fillStyle = grad;
+    roundRect(ctx, mx, my, mw, mh, 3); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, mx, my, mw, mh, 3); ctx.stroke();
+    // Screen
+    ctx.fillStyle = lightenColor(color, 45);
+    roundRect(ctx, mx + 3, my + 3, mw - 6, mh - 8, 2); ctx.fill();
+    // Stand
+    ctx.fillStyle = darkenColor(color, 10);
+    ctx.fillRect(cx - 3, my + mh, 6, 5);
+    ctx.fillRect(cx - 8, my + mh + 5, 16, 3);
+  }
+
+  function drawIconPrinter(cx, cy, s, color) {
+    const w = s * 1.4, h = s * 0.9;
+    const x = cx - w / 2, y = cy - h / 2;
+    ctx.fillStyle = lightenColor(color, 10);
+    roundRect(ctx, x, y, w, h, 3); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 3); ctx.stroke();
+    // Paper tray (top)
+    ctx.fillStyle = '#f5f5f5';
+    ctx.fillRect(x + 4, y - 5, w - 8, 6);
+    ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.5;
+    ctx.strokeRect(x + 4, y - 5, w - 8, 6);
+    // Paper output (bottom)
+    ctx.fillStyle = '#f5f5f5';
+    ctx.fillRect(x + 4, y + h - 2, w - 8, 6);
+    ctx.strokeRect(x + 4, y + h - 2, w - 8, 6);
+  }
+
+  function drawIconPhone(cx, cy, s, color) {
+    const w = s * 0.7, h = s * 1.3;
+    const x = cx - w / 2, y = cy - h / 2;
+    const grad = ctx.createLinearGradient(x, y, x + w, y + h);
+    grad.addColorStop(0, lightenColor(color, 15)); grad.addColorStop(1, darkenColor(color, 15));
+    ctx.fillStyle = grad;
+    roundRect(ctx, x, y, w, h, 5); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 5); ctx.stroke();
+    // Screen
+    ctx.fillStyle = lightenColor(color, 45);
+    roundRect(ctx, x + 2, y + 5, w - 4, h - 12, 2); ctx.fill();
+    // Home button
+    ctx.beginPath(); ctx.arc(cx, y + h - 4, 2, 0, Math.PI * 2);
+    ctx.strokeStyle = darkenColor(color, 20); ctx.lineWidth = 0.8; ctx.stroke();
+  }
+
+  function drawIconCloud(cx, cy, s, color) {
+    ctx.fillStyle = lightenColor(color, 15);
+    ctx.beginPath();
+    ctx.arc(cx - s * 0.3, cy, s * 0.45, 0, Math.PI * 2);
+    ctx.arc(cx + s * 0.3, cy, s * 0.45, 0, Math.PI * 2);
+    ctx.arc(cx, cy - s * 0.3, s * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx - s * 0.3, cy, s * 0.45, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.3, cy, s * 0.45, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy - s * 0.3, s * 0.5, 0, Math.PI * 2); ctx.stroke();
+    // Fill center to hide inner strokes
+    ctx.fillStyle = lightenColor(color, 15);
+    ctx.fillRect(cx - s * 0.5, cy - s * 0.15, s, s * 0.35);
+  }
+
+  function drawIconDatabase(cx, cy, s, color) {
+    const w = s * 0.9, h = s * 1.3;
+    const ry = h * 0.15;
+    const top = cy - h / 2, bot = cy + h / 2;
+    // Body
+    const grad = ctx.createLinearGradient(cx - w, top, cx + w, bot);
+    grad.addColorStop(0, lightenColor(color, 15)); grad.addColorStop(1, darkenColor(color, 15));
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(cx, top, w, ry, 0, 0, Math.PI, true); // top half (upward)
+    ctx.lineTo(cx - w, bot);
+    ctx.ellipse(cx, bot, w, ry, 0, Math.PI, 0, true);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1; ctx.stroke();
+    // Top ellipse
+    ctx.fillStyle = lightenColor(color, 25);
+    ctx.beginPath(); ctx.ellipse(cx, top, w, ry, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1; ctx.stroke();
+    // Middle lines
+    ctx.strokeStyle = darkenColor(color, 10); ctx.lineWidth = 0.5;
+    for (let i = 1; i < 3; i++) {
+      const yy = top + h * i / 3;
+      ctx.beginPath(); ctx.ellipse(cx, yy, w, ry * 0.7, 0, 0, Math.PI); ctx.stroke();
+    }
+  }
+
+  function drawIconFolder(cx, cy, s, color) {
+    const w = s * 1.4, h = s * 1.0;
+    const x = cx - w / 2, y = cy - h / 2 + 3;
+    // Tab
+    ctx.fillStyle = darkenColor(color, 10);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w * 0.35, y);
+    ctx.lineTo(x + w * 0.42, y - 5); ctx.lineTo(x, y - 5); ctx.closePath(); ctx.fill();
+    // Body
+    const grad = ctx.createLinearGradient(x, y, x, y + h);
+    grad.addColorStop(0, lightenColor(color, 15)); grad.addColorStop(1, darkenColor(color, 10));
+    ctx.fillStyle = grad;
+    roundRect(ctx, x, y, w, h, 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 2); ctx.stroke();
+  }
+
+  function drawIconGear(cx, cy, s, color) {
+    const teeth = 8, outer = s * 0.8, inner = s * 0.55, hole = s * 0.25;
+    ctx.fillStyle = lightenColor(color, 10);
+    ctx.beginPath();
+    for (let i = 0; i < teeth; i++) {
+      const a1 = (i / teeth) * Math.PI * 2 - Math.PI / 2;
+      const a2 = ((i + 0.35) / teeth) * Math.PI * 2 - Math.PI / 2;
+      const a3 = ((i + 0.5) / teeth) * Math.PI * 2 - Math.PI / 2;
+      const a4 = ((i + 0.85) / teeth) * Math.PI * 2 - Math.PI / 2;
+      if (i === 0) ctx.moveTo(cx + Math.cos(a1) * inner, cy + Math.sin(a1) * inner);
+      ctx.lineTo(cx + Math.cos(a1) * outer, cy + Math.sin(a1) * outer);
+      ctx.lineTo(cx + Math.cos(a2) * outer, cy + Math.sin(a2) * outer);
+      ctx.lineTo(cx + Math.cos(a3) * inner, cy + Math.sin(a3) * inner);
+      ctx.lineTo(cx + Math.cos(a4) * inner, cy + Math.sin(a4) * inner);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1; ctx.stroke();
+    // Center hole
+    ctx.fillStyle = '#f8f8f8';
+    ctx.beginPath(); ctx.arc(cx, cy, hole, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 20); ctx.lineWidth = 0.8; ctx.stroke();
+  }
+
+  function drawIconStar(cx, cy, s, color) {
+    const spikes = 5, outerR = s * 0.8, innerR = s * 0.35;
+    ctx.fillStyle = lightenColor(color, 10);
+    ctx.beginPath();
+    for (let i = 0; i < spikes * 2; i++) {
+      const r = i % 2 === 0 ? outerR : innerR;
+      const a = (i / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
+      if (i === 0) ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+      else ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1; ctx.stroke();
+  }
+
   function roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -1056,9 +1284,13 @@
   const defaultColors = ['#4a8acf', '#e06c75', '#98c379', '#e5c07b', '#c678dd', '#56b6c2', '#be5046'];
 
   function addPerson(name, opts) {
+    const isItem = opts && opts.itemType === 'item';
     const p = {
       id: state.nextId++,
-      name: name || '新しい人物',
+      name: name || (isItem ? '新しいアイテム' : '新しい人物'),
+      itemType: (opts && opts.itemType) || 'person',
+      icon: (opts && opts.icon) || 'person',
+      description: (opts && opts.description) || '',
       role: (opts && opts.role) || '',
       affiliation: (opts && opts.affiliation) || '',
       color: (opts && opts.color) || defaultColors[state.persons.length % defaultColors.length],
@@ -1125,23 +1357,41 @@
     noSelectionMsg.style.display = 'none';
     personProps.style.display = 'none';
     regionProps.style.display = 'none';
+    const itemPropsEl = document.getElementById('item-props');
+    if (itemPropsEl) itemPropsEl.style.display = 'none';
     if (connectorProps) connectorProps.style.display = 'none';
     if (textProps) textProps.style.display = 'none';
 
     if (state.selectedType === 'person') {
       const p = state.persons.find(p => p.id === state.selectedId);
       if (!p) return;
-      personProps.style.display = 'block';
-      propName.value = p.name;
-      propRole.value = p.role;
-      propAffiliation.value = p.affiliation;
-      propColor.value = p.color;
-      if (propEmail) propEmail.value = p.email || '';
-      if (propPhone) propPhone.value = p.phone || '';
-      if (propJoindate) propJoindate.value = p.joinDate || '';
-      if (propEffectiveDate) propEffectiveDate.value = p.effectiveDate || '';
-      if (propPhotoUrl) propPhotoUrl.value = p.photoUrl || '';
-      renderRoleCheckboxes(p);
+      if (p.itemType === 'item') {
+        // Show item properties
+        const itemPropsEl = document.getElementById('item-props');
+        if (itemPropsEl) {
+          itemPropsEl.style.display = 'block';
+          const propItemName = document.getElementById('prop-item-name');
+          const propItemIcon = document.getElementById('prop-item-icon');
+          const propItemDesc = document.getElementById('prop-item-description');
+          const propItemColor = document.getElementById('prop-item-color');
+          if (propItemName) propItemName.value = p.name || '';
+          if (propItemIcon) propItemIcon.value = p.icon || 'server';
+          if (propItemDesc) propItemDesc.value = p.description || '';
+          if (propItemColor) propItemColor.value = p.color || '#4a8acf';
+        }
+      } else {
+        personProps.style.display = 'block';
+        propName.value = p.name;
+        propRole.value = p.role;
+        propAffiliation.value = p.affiliation;
+        propColor.value = p.color;
+        if (propEmail) propEmail.value = p.email || '';
+        if (propPhone) propPhone.value = p.phone || '';
+        if (propJoindate) propJoindate.value = p.joinDate || '';
+        if (propEffectiveDate) propEffectiveDate.value = p.effectiveDate || '';
+        if (propPhotoUrl) propPhotoUrl.value = p.photoUrl || '';
+        renderRoleCheckboxes(p);
+      }
     } else if (state.selectedType === 'region') {
       const r = state.regions.find(r => r.id === state.selectedId);
       if (!r) return;
@@ -1313,7 +1563,12 @@
         if (state.searchQuery && !isMatch) div.style.display = 'none';
         const roleNames = (p.roleIds || []).map(rid => { const r = state.roles.find(r => r.id === rid); return r ? r.name : ''; }).filter(Boolean);
         const roleStr = roleNames.length > 0 ? ' (' + roleNames.join(', ') + ')' : '';
-        div.innerHTML = `<span class="color-dot" style="background:${p.color}"></span><span>${p.name}${roleStr}</span>`;
+        const iconMap = {server:'🖥',pc:'💻',printer:'🖨',phone:'📱',cloud:'☁',database:'🗄',folder:'📁',gear:'⚙',star:'⭐'};
+        const isItem = p.itemType === 'item';
+        const iconEmoji = isItem ? (iconMap[p.icon] || '📦') : '';
+        div.innerHTML = isItem
+          ? `<span style="margin-right:4px">${iconEmoji}</span><span>${p.name}</span>`
+          : `<span class="color-dot" style="background:${p.color}"></span><span>${p.name}${roleStr}</span>`;
         div.addEventListener('click', () => selectItem('person', p.id));
         container.appendChild(div);
       });
@@ -1353,7 +1608,12 @@
       if (state.searchQuery && !isMatch) div.style.display = 'none';
       const roleNames = (p.roleIds || []).map(rid => { const r = state.roles.find(r => r.id === rid); return r ? r.name : ''; }).filter(Boolean);
       const roleStr = roleNames.length > 0 ? ' (' + roleNames.join(', ') + ')' : '';
-      div.innerHTML = `<span class="color-dot" style="background:${p.color}"></span><span>${p.name}${roleStr}</span>`;
+      const iconMap = {server:'🖥',pc:'💻',printer:'🖨',phone:'📱',cloud:'☁',database:'🗄',folder:'📁',gear:'⚙',star:'⭐'};
+      const isItem = p.itemType === 'item';
+      const iconEmoji = isItem ? (iconMap[p.icon] || '📦') : '';
+      div.innerHTML = isItem
+        ? `<span style="margin-right:4px">${iconEmoji}</span><span>${p.name}</span>`
+        : `<span class="color-dot" style="background:${p.color}"></span><span>${p.name}${roleStr}</span>`;
       div.addEventListener('click', () => selectItem('person', p.id));
       personListEl.appendChild(div);
     });
@@ -2205,6 +2465,17 @@
     saveState();
     render();
   });
+
+  if (btnAddItem) {
+    btnAddItem.addEventListener('click', () => {
+      pushUndo();
+      addPerson(null, { itemType: 'item', icon: 'server' });
+      renderPersonList();
+      selectItem('person', state.persons[state.persons.length - 1].id);
+      saveState();
+      render();
+    });
+  }
 
   if (btnZoomReset) {
     btnZoomReset.addEventListener('click', () => {
@@ -3238,6 +3509,37 @@
     propTextColor.addEventListener('input', () => {
       const t = state.textAnnotations.find(t => t.id === state.selectedId);
       if (t) { t.color = propTextColor.value; saveState(); render(); }
+    });
+  }
+
+  // ===== Item Property Handlers =====
+  const propItemName = document.getElementById('prop-item-name');
+  const propItemIcon = document.getElementById('prop-item-icon');
+  const propItemDesc = document.getElementById('prop-item-description');
+  const propItemColor = document.getElementById('prop-item-color');
+
+  if (propItemName) {
+    propItemName.addEventListener('input', () => {
+      const p = state.persons.find(p => p.id === state.selectedId && p.itemType === 'item');
+      if (p) { p.name = propItemName.value; renderPersonList(); saveState(); render(); }
+    });
+  }
+  if (propItemIcon) {
+    propItemIcon.addEventListener('change', () => {
+      const p = state.persons.find(p => p.id === state.selectedId && p.itemType === 'item');
+      if (p) { p.icon = propItemIcon.value; renderPersonList(); saveState(); render(); }
+    });
+  }
+  if (propItemDesc) {
+    propItemDesc.addEventListener('input', () => {
+      const p = state.persons.find(p => p.id === state.selectedId && p.itemType === 'item');
+      if (p) { p.description = propItemDesc.value; saveState(); }
+    });
+  }
+  if (propItemColor) {
+    propItemColor.addEventListener('input', () => {
+      const p = state.persons.find(p => p.id === state.selectedId && p.itemType === 'item');
+      if (p) { p.color = propItemColor.value; saveState(); render(); }
     });
   }
 
