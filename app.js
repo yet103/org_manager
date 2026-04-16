@@ -9,6 +9,8 @@
     roles: [],
     connectors: [],
     textAnnotations: [],
+    layers: [{ id: 1, name: 'メイン', visible: true, locked: false }],
+    activeLayerId: 1,
     viewMode: 'square', // 'square' | 'quarter'
     tool: 'select',     // 'select' | 'region' | 'connector' | 'text'
     selectedId: null,
@@ -187,6 +189,7 @@
 
   function drawTextAnnotations() {
     state.textAnnotations.forEach(t => {
+      if (!isOnVisibleLayer(t)) return;
       const s = worldToScreen(t.x, t.y);
       const isSelected = (state.selectedType === 'text' && state.selectedId === t.id) || (state.multiSelection.textIds || []).includes(t.id);
       const fontSize = (t.fontSize || 9) * state.zoom;
@@ -346,6 +349,7 @@
 
   function drawConnectors() {
     state.connectors.forEach(c => {
+      if (!isOnVisibleLayer(c)) return;
       const points = getConnectorPoints(c);
       if (!points) return;
       const isSelected = state.selectedType === 'connector' && state.selectedId === c.id;
@@ -630,6 +634,7 @@
 
   function drawRegions() {
     state.regions.forEach(r => {
+      if (!isOnVisibleLayer(r)) return;
       const isSelected = (state.selectedType === 'region' && state.selectedId === r.id) || state.multiSelection.regionIds.includes(r.id);
       const rc = r.color || '#4a8acf';
 
@@ -801,6 +806,7 @@
   function drawPersons() {
     const sorted = [...state.persons].sort((a, b) => a.y - b.y);
     sorted.forEach(p => {
+      if (!isOnVisibleLayer(p)) return;
       const s = worldToScreen(p.x, p.y);
       const isSelected = state.selectedType === 'person' && state.selectedId === p.id;
       const isMultiSelected = state.multiSelection.personIds.includes(p.id);
@@ -1037,6 +1043,7 @@
       joinDate: (opts && opts.joinDate) || '',
       effectiveDate: (opts && opts.effectiveDate) || '',
       photoUrl: (opts && opts.photoUrl) || '',
+      layerId: (opts && opts.layerId) || state.activeLayerId,
     };
     state.persons.push(p);
     return p;
@@ -1910,6 +1917,7 @@
             label: '',
             direction: 'none',
             waypoints: [],
+            layerId: state.activeLayerId,
           };
           state.connectors.push(connector);
           selectItem('connector', connector.id);
@@ -1931,6 +1939,7 @@
             label: '',
             direction: 'none',
             waypoints: [],
+            layerId: state.activeLayerId,
           };
           if (fromRegion) {
             const from = getConnectionPointWorld(fromRegion, connector.fromSide);
@@ -1961,6 +1970,7 @@
           id: state.nextId++,
           name: '',
           x, y, w, h,
+          layerId: state.activeLayerId,
         };
         state.regions.push(region);
         selectItem('region', region.id);
@@ -2069,6 +2079,8 @@
         regions: state.regions,
         roles: state.roles,
         connectors: state.connectors,
+        textAnnotations: state.textAnnotations,
+        layers: state.layers,
         nextId: state.nextId,
         exportedAt: new Date().toISOString(),
       };
@@ -2105,6 +2117,11 @@
           if (data.regions) state.regions = data.regions;
           if (data.roles) state.roles = data.roles;
           if (data.connectors) state.connectors = data.connectors;
+          if (data.textAnnotations) state.textAnnotations = data.textAnnotations;
+          if (data.layers && data.layers.length > 0) {
+            state.layers = data.layers;
+            state.activeLayerId = data.layers[0].id;
+          }
           if (data.nextId) state.nextId = data.nextId;
           clearSelection();
           saveState();
@@ -2840,6 +2857,7 @@
       roles: state.roles,
       connectors: state.connectors,
       textAnnotations: state.textAnnotations,
+      layers: state.layers,
       nextId: state.nextId,
     };
     try {
@@ -2858,6 +2876,13 @@
         state.connectors = data.connectors || [];
         state.textAnnotations = data.textAnnotations || [];
         state.nextId = data.nextId || 1;
+        if (data.layers && data.layers.length > 0) {
+          state.layers = data.layers;
+          state.activeLayerId = data.layers[0].id;
+        } else {
+          state.layers = [{ id: 1, name: 'メイン', visible: true, locked: false }];
+          state.activeLayerId = 1;
+        }
         // Ensure roleIds on persons
         state.persons.forEach(p => { if (!p.roleIds) p.roleIds = []; });
       }
@@ -2983,6 +3008,7 @@
         y: world.y,
         fontSize: 9,
         color: '#2c3e50',
+        layerId: state.activeLayerId,
       };
       state.textAnnotations.push(t);
       selectItem('text', t.id);
@@ -3195,12 +3221,131 @@
   // Patch deleteSelected to handle text annotations
   // (already handles person/region/connector; need to add text)
 
+  // ===== Layer Management =====
+  const layerListEl = document.getElementById('layer-list');
+  const btnAddLayer = document.getElementById('btn-add-layer');
+
+  function isOnVisibleLayer(obj) {
+    if (!obj.layerId) return true; // objects without layerId are always visible (backward compat)
+    const layer = state.layers.find(l => l.id === obj.layerId);
+    return layer ? layer.visible : true;
+  }
+
+  function isOnLockedLayer(obj) {
+    if (!obj.layerId) return false;
+    const layer = state.layers.find(l => l.id === obj.layerId);
+    return layer ? layer.locked : false;
+  }
+
+  function renderLayerList() {
+    if (!layerListEl) return;
+    layerListEl.innerHTML = '';
+    state.layers.forEach(layer => {
+      const item = document.createElement('div');
+      item.className = 'layer-item' + (layer.id === state.activeLayerId ? ' active' : '');
+      
+      const visBtn = document.createElement('button');
+      visBtn.className = 'layer-toggle' + (layer.visible ? '' : ' off');
+      visBtn.textContent = layer.visible ? '👁' : '👁‍🗨';
+      visBtn.title = layer.visible ? '非表示にする' : '表示する';
+      visBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        layer.visible = !layer.visible;
+        saveState();
+        renderLayerList();
+        render();
+      });
+
+      const lockBtn = document.createElement('button');
+      lockBtn.className = 'layer-toggle' + (layer.locked ? '' : ' off');
+      lockBtn.textContent = layer.locked ? '🔒' : '🔓';
+      lockBtn.title = layer.locked ? 'ロック解除' : 'ロック';
+      lockBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        layer.locked = !layer.locked;
+        saveState();
+        renderLayerList();
+      });
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'layer-name';
+      nameSpan.textContent = layer.name;
+      nameSpan.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        const input = document.createElement('input');
+        input.className = 'layer-name-input';
+        input.value = layer.name;
+        input.addEventListener('blur', () => {
+          layer.name = input.value || layer.name;
+          saveState();
+          renderLayerList();
+        });
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') input.blur();
+        });
+        nameSpan.replaceWith(input);
+        input.focus();
+        input.select();
+      });
+
+      // Delete button (only if more than 1 layer)
+      const delBtn = document.createElement('button');
+      delBtn.className = 'layer-toggle';
+      delBtn.textContent = '✕';
+      delBtn.title = 'レイヤーを削除';
+      delBtn.style.fontSize = '10px';
+      if (state.layers.length <= 1) delBtn.style.display = 'none';
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (state.layers.length <= 1) return;
+        if (!confirm(`レイヤー「${layer.name}」を削除しますか？含まれるオブジェクトも削除されます。`)) return;
+        pushUndo();
+        // Remove objects on this layer
+        state.persons = state.persons.filter(p => p.layerId !== layer.id);
+        state.regions = state.regions.filter(r => r.layerId !== layer.id);
+        state.connectors = state.connectors.filter(c => c.layerId !== layer.id);
+        state.textAnnotations = state.textAnnotations.filter(t => t.layerId !== layer.id);
+        state.layers = state.layers.filter(l => l.id !== layer.id);
+        if (state.activeLayerId === layer.id) {
+          state.activeLayerId = state.layers[0].id;
+        }
+        clearSelection();
+        saveState();
+        renderLayerList();
+        renderPersonList();
+        render();
+      });
+
+      item.addEventListener('click', () => {
+        state.activeLayerId = layer.id;
+        renderLayerList();
+      });
+
+      item.appendChild(visBtn);
+      item.appendChild(lockBtn);
+      item.appendChild(nameSpan);
+      item.appendChild(delBtn);
+      layerListEl.appendChild(item);
+    });
+  }
+
+  if (btnAddLayer) {
+    btnAddLayer.addEventListener('click', () => {
+      const newId = state.nextId++;
+      state.layers.push({ id: newId, name: `レイヤー ${state.layers.length + 1}`, visible: true, locked: false });
+      state.activeLayerId = newId;
+      saveState();
+      renderLayerList();
+    });
+  }
+
   // ===== Init =====
   function init() {
     loadState();
     loadFromUrl();
     resizeCanvas();
     renderPersonList();
+    renderLayerList();
     window.addEventListener('resize', resizeCanvas);
   }
 
