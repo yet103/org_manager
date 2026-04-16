@@ -72,6 +72,7 @@
   const connectorProps = document.getElementById('connector-props');
   const propConnectorLabel = document.getElementById('prop-connector-label');
   const propConnectorDirection = document.getElementById('prop-connector-direction');
+  const propConnectorLinetype = document.getElementById('prop-connector-linetype');
 
   const noSelectionMsg = document.getElementById('no-selection-msg');
   const personProps = document.getElementById('person-props');
@@ -320,14 +321,26 @@
   }
 
   function getConnectorPoints(c) {
+    // Free-form connector: uses fromX/fromY and toX/toY directly
+    if (c.freeForm) {
+      const from = worldToScreen(c.fromX, c.fromY);
+      const to = worldToScreen(c.toX, c.toY);
+      return [from, to];
+    }
     const fromRegion = state.regions.find(r => r.id === c.fromRegionId);
     const toRegion = state.regions.find(r => r.id === c.toRegionId);
     if (!fromRegion || !toRegion) return null;
-    // Route entirely in world coordinates
+    const lineType = c.lineType || 'elbow';
+    if (lineType === 'straight' || lineType === 'arrow') {
+      // Straight line: just connect the two points directly
+      const from = getConnectionPointWorld(fromRegion, c.fromSide);
+      const to = getConnectionPointWorld(toRegion, c.toSide);
+      return [worldToScreen(from.x, from.y), worldToScreen(to.x, to.y)];
+    }
+    // Elbow (default): route through waypoints
     const from = getConnectionPointWorld(fromRegion, c.fromSide);
     const to = getConnectionPointWorld(toRegion, c.toSide);
     const worldPoints = routeConnector(from, to, c.fromSide, c.toSide, c.waypoints || []);
-    // Transform all points to screen coordinates
     return worldPoints.map(p => worldToScreen(p.x, p.y));
   }
 
@@ -340,16 +353,28 @@
       ctx.strokeStyle = isSelected ? '#e06c75' : '#5a9fd4';
       ctx.lineWidth = isSelected ? 2.5 : 1.8;
       ctx.fillStyle = ctx.strokeStyle;
-      drawRoundedPolyline(points, 8);
+
+      const lineType = c.lineType || 'elbow';
+      if (lineType === 'straight' || lineType === 'arrow' || c.freeForm) {
+        // Draw straight line
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+        ctx.stroke();
+      } else {
+        drawRoundedPolyline(points, 8);
+      }
 
       // Arrows
       const arrowSize = 8;
-      if (c.direction === 'forward' || c.direction === 'both') {
+      const drawForward = lineType === 'arrow' || c.direction === 'forward' || c.direction === 'both';
+      const drawBackward = c.direction === 'backward' || c.direction === 'both';
+      if (drawForward) {
         const last = points[points.length - 1];
         const prev = points[points.length - 2];
         drawArrowHead(last.x, last.y, prev.x, prev.y, arrowSize);
       }
-      if (c.direction === 'backward' || c.direction === 'both') {
+      if (drawBackward) {
         const first = points[0];
         const second = points[1];
         drawArrowHead(first.x, first.y, second.x, second.y, arrowSize);
@@ -453,14 +478,19 @@
   function drawConnectorPreview() {
     if (!state.connectorDraw) return;
     const cd = state.connectorDraw;
-    const fromRegion = state.regions.find(r => r.id === cd.fromRegionId);
-    if (!fromRegion) return;
-    const from = getConnectionPoint(fromRegion, cd.fromSide);
     ctx.strokeStyle = 'rgba(90,159,212,0.5)';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
-    ctx.moveTo(from.x, from.y);
+    if (cd.freeForm) {
+      const from = worldToScreen(cd.fromX, cd.fromY);
+      ctx.moveTo(from.x, from.y);
+    } else {
+      const fromRegion = state.regions.find(r => r.id === cd.fromRegionId);
+      if (!fromRegion) { ctx.setLineDash([]); return; }
+      const from = getConnectionPoint(fromRegion, cd.fromSide);
+      ctx.moveTo(from.x, from.y);
+    }
     ctx.lineTo(cd.currentX, cd.currentY);
     ctx.stroke();
     ctx.setLineDash([]);
@@ -1085,6 +1115,7 @@
       connectorProps.style.display = 'block';
       if (propConnectorLabel) propConnectorLabel.value = c.label || '';
       if (propConnectorDirection) propConnectorDirection.value = c.direction || 'none';
+      if (propConnectorLinetype) propConnectorLinetype.value = c.lineType || 'elbow';
     } else if (state.selectedType === 'text') {
       const t = state.textAnnotations.find(t => t.id === state.selectedId);
       if (!t || !textProps) return;
@@ -1626,6 +1657,19 @@
           fromSide: cp.side,
           currentX: pos.x,
           currentY: pos.y,
+          freeForm: false,
+        };
+        container.style.cursor = 'crosshair';
+        render();
+      } else {
+        // Free-form drawing: start from any point on canvas
+        const world = screenToWorld(pos.x, pos.y);
+        state.connectorDraw = {
+          fromX: world.x,
+          fromY: world.y,
+          currentX: pos.x,
+          currentY: pos.y,
+          freeForm: true,
         };
         container.style.cursor = 'crosshair';
         render();
@@ -1849,31 +1893,55 @@
     // Connector draw complete
     if (state.connectorDraw) {
       const pos = getCanvasPos(e);
-      const cp = hitTestConnectionPoint(pos.x, pos.y);
-      if (cp && cp.region.id !== state.connectorDraw.fromRegionId) {
-        pushUndo();
-        const fromRegion = state.regions.find(r => r.id === state.connectorDraw.fromRegionId);
-        const connector = {
-          id: state.nextId++,
-          fromRegionId: state.connectorDraw.fromRegionId,
-          toRegionId: cp.region.id,
-          fromSide: state.connectorDraw.fromSide,
-          toSide: cp.side,
-          label: '',
-          direction: 'none',
-          waypoints: [],
-        };
-        // Auto-populate waypoints from auto-route corners
-        if (fromRegion) {
-          const from = getConnectionPointWorld(fromRegion, connector.fromSide);
-          const to = getConnectionPointWorld(cp.region, connector.toSide);
-          const autoPoints = routeConnector(from, to, connector.fromSide, connector.toSide, []);
-          // Extract intermediate points (skip first=start, last=end)
-          connector.waypoints = autoPoints.slice(1, -1).map(p => ({ x: p.x, y: p.y }));
+      if (state.connectorDraw.freeForm) {
+        // Free-form line: complete at release position
+        const world = screenToWorld(pos.x, pos.y);
+        const dist = Math.hypot(world.x - state.connectorDraw.fromX, world.y - state.connectorDraw.fromY);
+        if (dist > 10) {
+          pushUndo();
+          const connector = {
+            id: state.nextId++,
+            freeForm: true,
+            fromX: state.connectorDraw.fromX,
+            fromY: state.connectorDraw.fromY,
+            toX: world.x,
+            toY: world.y,
+            lineType: 'straight',
+            label: '',
+            direction: 'none',
+            waypoints: [],
+          };
+          state.connectors.push(connector);
+          selectItem('connector', connector.id);
+          saveState();
         }
-        state.connectors.push(connector);
-        selectItem('connector', connector.id);
-        saveState();
+      } else {
+        // Region-to-region connector
+        const cp = hitTestConnectionPoint(pos.x, pos.y);
+        if (cp && cp.region.id !== state.connectorDraw.fromRegionId) {
+          pushUndo();
+          const fromRegion = state.regions.find(r => r.id === state.connectorDraw.fromRegionId);
+          const connector = {
+            id: state.nextId++,
+            fromRegionId: state.connectorDraw.fromRegionId,
+            toRegionId: cp.region.id,
+            fromSide: state.connectorDraw.fromSide,
+            toSide: cp.side,
+            lineType: 'elbow',
+            label: '',
+            direction: 'none',
+            waypoints: [],
+          };
+          if (fromRegion) {
+            const from = getConnectionPointWorld(fromRegion, connector.fromSide);
+            const to = getConnectionPointWorld(cp.region, connector.toSide);
+            const autoPoints = routeConnector(from, to, connector.fromSide, connector.toSide, []);
+            connector.waypoints = autoPoints.slice(1, -1).map(p => ({ x: p.x, y: p.y }));
+          }
+          state.connectors.push(connector);
+          selectItem('connector', connector.id);
+          saveState();
+        }
       }
       state.connectorDraw = null;
       container.style.cursor = 'default';
@@ -2341,6 +2409,12 @@
     propConnectorDirection.addEventListener('change', () => {
       const c = state.connectors.find(c => c.id === state.selectedId);
       if (c) { c.direction = propConnectorDirection.value; saveState(); render(); }
+    });
+  }
+  if (propConnectorLinetype) {
+    propConnectorLinetype.addEventListener('change', () => {
+      const c = state.connectors.find(c => c.id === state.selectedId);
+      if (c) { c.lineType = propConnectorLinetype.value; saveState(); render(); }
     });
   }
 

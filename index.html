@@ -35,7 +35,7 @@
           <span class="toolbar-label">ツール</span>
           <button class="btn active" id="btn-tool-select" title="選択・移動">🖱 選択</button>
           <button class="btn" id="btn-tool-region" title="領域を描画">⬜ 領域</button>
-          <button class="btn" id="btn-tool-connector" title="コネクタ (Shift)">🔗 コネクタ</button>
+          <button class="btn" id="btn-tool-connector" title="図形描画 (Shift)">✏️ 図形描画</button>
           <button class="btn" id="btn-tool-text" title="テキスト注釈">📝 注釈</button>
         </div>
         <div class="toolbar-group">
@@ -168,6 +168,14 @@
           </div>
         </div>
         <div id="connector-props" style="display:none;">
+          <div class="prop-group">
+            <div class="prop-label">線の種類</div>
+            <select class="prop-input" id="prop-connector-linetype">
+              <option value="elbow">カギ直線</option>
+              <option value="straight">直線</option>
+              <option value="arrow">矢印</option>
+            </select>
+          </div>
           <div class="prop-group">
             <div class="prop-label">ラベル</div>
             <input type="text" class="prop-input" id="prop-connector-label" placeholder="ラベル">
