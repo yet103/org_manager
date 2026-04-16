@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Server-不要-success?style=flat-square" alt="No Server">
   <img src="https://img.shields.io/badge/Data-自動保存-blue?style=flat-square" alt="Auto Save">
   <img src="https://img.shields.io/badge/Theme-Light%20%2F%20Dark-8B5CF6?style=flat-square" alt="Dark Mode">
-  <img src="https://img.shields.io/badge/Version-v1.5.2-orange?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/Version-v1.5.3-orange?style=flat-square" alt="Version">
 </p>
 
 ---
@@ -269,7 +269,8 @@ org_manager/
 
 | バージョン | リンク | 日付 |
 |:--|:--|:--|
-| **v1.5.2**（最新） | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.5.2.zip) | 2026-04-16 |
+| **v1.5.3**（最新） | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.5.3.zip) | 2026-04-16 |
+| v1.5.2 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.5.2.zip) | 2026-04-16 |
 | v1.5.1 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.5.1.zip) | 2026-04-16 |
 | v1.5.0 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.5.0.zip) | 2026-04-16 |
 | v1.4.0 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.4.0.zip) | 2026-04-15 |
@@ -292,6 +293,10 @@ cd org_manager
 ---
 
 ## 📋 更新履歴
+
+### v1.5.3（2026-04-16）
+- 🐛 **注釈フォントサイズのデフォルト値不整合を修正** — 一部で14が使われていた箇所を9に統一
+- 🐛 **フォントサイズ入力時の巨大化バグを修正** — 入力イベントをchange（Enter/blur時）に変更し、中間値での描画を防止
 
 ### v1.5.2（2026-04-16）
 - ✨ **注釈・図形の一括選択移動** — 注釈テキストとfreeFormコネクタ（直線・矢印）を範囲選択・Ctrl+Click・Ctrl+Aで一括選択し、まとめてドラッグ移動・削除・コピー＆ペースト可能に
