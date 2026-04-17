@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Server-不要-success?style=flat-square" alt="No Server">
   <img src="https://img.shields.io/badge/Data-自動保存-blue?style=flat-square" alt="Auto Save">
   <img src="https://img.shields.io/badge/Theme-Light%20%2F%20Dark-8B5CF6?style=flat-square" alt="Dark Mode">
-  <img src="https://img.shields.io/badge/Version-v1.6.0-orange?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/Version-v1.7.0-orange?style=flat-square" alt="Version">
 </p>
 
 ---
@@ -269,7 +269,8 @@ org_manager/
 
 | バージョン | リンク | 日付 |
 |:--|:--|:--|
-| **v1.6.0**（最新） | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.6.0.zip) | 2026-04-17 |
+| **v1.7.0**（最新） | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.7.0.zip) | 2026-04-17 |
+| v1.6.0 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.6.0.zip) | 2026-04-17 |
 | v1.5.3 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.5.3.zip) | 2026-04-16 |
 | v1.5.2 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.5.2.zip) | 2026-04-16 |
 | v1.5.1 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.5.1.zip) | 2026-04-16 |
@@ -294,6 +295,16 @@ cd org_manager
 ---
 
 ## 📋 更新履歴
+
+### v1.7.0（2026-04-17）
+- ✨ **アイコンレジストリによる拡張可能設計** — データ駆動の`ICON_REGISTRY`でアイコンを一元管理、新規アイコン追加はレジストリ1行＋描画関数だけで完結
+- 📦 **アイコン9種→37種に拡充** — 5カテゴリに分類：
+  - 🖥 システム構成図（12種）: サーバ / PC / ノートPC / DB / クラウド / コンテナ / API / ターミナル / コード / バグ / セキュリティ / 防御
+  - 🌐 ネットワーク構成図（8種）: ルーター / スイッチ / ファイアウォール / Wi-Fi / インターネット / VPN / DNS / 負荷分散
+  - 🏢 オフィス機器（9種）: プリンタ / 電話 / 固定電話 / モニター / プロジェクタ / ホワイトボード / カメラ / ヘッドセット / スピーカー
+  - ✏️ 文房具（6種）: フォルダ / 書類 / クリップボード / 鉛筆 / スタンプ / カレンダー
+  - ⚡ 汎用（2種）: 設定 / スター
+- 🎨 **ドロップダウンをoptgroupでカテゴリ分類** — アイコン選択時にカテゴリヘッダーで組織的に選択可能
 
 ### v1.6.0（2026-04-17）
 - ✨ **アイテム（非人物オブジェクト）の配置機能** — サーバ🖥、PC💻、プリンタ🖨、電話📱、クラウド☁、DB🗄、フォルダ📁、歯車⚙、スター⭐の9種類のアイコンでIT機器・設備等をキャンバスに配置可能
