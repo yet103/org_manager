@@ -5080,6 +5080,140 @@
     });
   }
 
+  // ===== Dashboard (#22-#26) =====
+  function setupDashboard() {
+    const btnDash = document.getElementById('btn-dashboard');
+    const dashModal = document.getElementById('dashboard-modal');
+    const dashContent = document.getElementById('dashboard-content');
+    const dashBtnClose = document.getElementById('dashboard-btn-close');
+    const dashBtnExport = document.getElementById('dashboard-btn-export-csv');
+    if (!btnDash || !dashModal) return;
+
+    btnDash.addEventListener('click', () => {
+      renderDashboard();
+      dashModal.classList.add('show');
+    });
+    dashBtnClose.addEventListener('click', () => dashModal.classList.remove('show'));
+    dashModal.addEventListener('click', (e) => { if (e.target === dashModal) dashModal.classList.remove('show'); });
+
+    // #24: CSV Export
+    dashBtnExport.addEventListener('click', () => {
+      const persons = state.persons;
+      const lines = ['名前,種別,容量,単位,単価,配分率(%),配分先,コスト'];
+      persons.forEach(p => {
+        const totalAlloc = getAllocationTotal(p);
+        const targets = (p.allocations || []).map(a => {
+          const r = state.regions.find(r => r.id === a.targetId);
+          return (r ? r.name : '未指定') + '(' + Math.round((a.ratio || 0) * 100) + '%)';
+        }).join('; ');
+        const cost = (p.costPerUnit || 0) * totalAlloc;
+        lines.push(`"${p.name}","${p.itemType === 'item' ? '物的' : '人的'}",${p.capacity || 0},"${p.unit || ''}",${p.costPerUnit || 0},${Math.round(totalAlloc * 100)},"${targets}",${Math.round(cost)}`);
+      });
+      const csv = '\uFEFF' + lines.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `drawplan_report_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    function renderDashboard() {
+      const persons = state.persons;
+      const regions = state.regions;
+      const humanRes = persons.filter(p => p.itemType !== 'item');
+      const itemRes = persons.filter(p => p.itemType === 'item');
+
+      // Calculate totals
+      let totalCost = 0, overAllocCount = 0, unallocCount = 0;
+      const alerts = [];
+      persons.forEach(p => {
+        const total = getAllocationTotal(p);
+        totalCost += (p.costPerUnit || 0) * total;
+        if (total > 1.0) { overAllocCount++; alerts.push({ type: 'danger', msg: `⚠ ${p.name}: 配分率 ${Math.round(total * 100)}% (超過)` }); }
+        if (total === 0 && p.capacity > 0) { unallocCount++; alerts.push({ type: 'warning', msg: `💤 ${p.name}: 未配分 (容量: ${p.capacity}${p.unit || ''})` }); }
+      });
+
+      let html = '';
+
+      // #22: KPI Cards
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;">';
+      html += kpiCard('👥 人的リソース', humanRes.length + '名', '#3498db');
+      html += kpiCard('📦 物的リソース', itemRes.length + '件', '#2ecc71');
+      html += kpiCard('🏢 リージョン', regions.length + '件', '#9b59b6');
+      html += kpiCard('💰 月間コスト', '¥' + Math.round(totalCost).toLocaleString(), '#e67e22');
+      html += kpiCard('⚠ 超過', overAllocCount + '件', overAllocCount > 0 ? '#e74c3c' : '#27ae60');
+      html += kpiCard('💤 未配分', unallocCount + '件', unallocCount > 0 ? '#f39c12' : '#27ae60');
+      html += '</div>';
+
+      // #26: Alerts
+      if (alerts.length > 0) {
+        html += '<div style="margin-bottom:16px;max-height:120px;overflow-y:auto;border:1px solid #eee;border-radius:6px;padding:8px;">';
+        html += '<div style="font-weight:bold;font-size:12px;margin-bottom:4px;">🔔 アラート</div>';
+        alerts.forEach(a => {
+          const bg = a.type === 'danger' ? '#fde8e8' : '#fef3cd';
+          const border = a.type === 'danger' ? '#e74c3c' : '#f39c12';
+          html += `<div style="padding:4px 8px;margin:2px 0;background:${bg};border-left:3px solid ${border};border-radius:3px;font-size:11px;">${a.msg}</div>`;
+        });
+        html += '</div>';
+      }
+
+      // #23: Utilization Chart
+      html += '<div style="margin-bottom:16px;">';
+      html += '<div style="font-weight:bold;font-size:13px;margin-bottom:8px;">📊 リソース稼働率</div>';
+      html += '<div style="display:flex;flex-direction:column;gap:4px;">';
+      persons.forEach(p => {
+        const total = getAllocationTotal(p);
+        const pct = Math.round(total * 100);
+        const barColor = pct > 100 ? '#e74c3c' : pct > 80 ? '#f39c12' : pct > 0 ? '#3498db' : '#bdc3c7';
+        html += `<div style="display:flex;align-items:center;gap:6px;font-size:11px;">`;
+        html += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};flex-shrink:0;"></span>`;
+        html += `<span style="width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;">${p.name}</span>`;
+        html += `<div style="flex:1;background:#e0e0e0;height:14px;border-radius:3px;overflow:hidden;position:relative;">`;
+        html += `<div style="height:100%;width:${Math.min(pct, 100)}%;background:${barColor};border-radius:3px;transition:width 0.3s;"></div>`;
+        if (pct > 100) html += `<div style="position:absolute;top:0;left:0;width:100%;height:100%;border:2px solid #e74c3c;border-radius:3px;"></div>`;
+        html += `</div>`;
+        html += `<span style="width:40px;text-align:right;font-weight:bold;color:${barColor};">${pct}%</span>`;
+        html += `</div>`;
+      });
+      html += '</div></div>';
+
+      // #25: Region Cost Analysis
+      html += '<div style="margin-bottom:16px;">';
+      html += '<div style="font-weight:bold;font-size:13px;margin-bottom:8px;">🏢 リージョン別コスト分析</div>';
+      html += '<table style="border-collapse:collapse;width:100%;font-size:11px;">';
+      html += '<thead><tr style="background:#f0f4f8;"><th style="border:1px solid #ddd;padding:4px 8px;text-align:left;">リージョン</th>';
+      html += '<th style="border:1px solid #ddd;padding:4px;text-align:center;">人的</th>';
+      html += '<th style="border:1px solid #ddd;padding:4px;text-align:center;">物的</th>';
+      html += '<th style="border:1px solid #ddd;padding:4px;text-align:right;">月間コスト</th>';
+      html += '</tr></thead><tbody>';
+      let regionTotal = 0;
+      regions.forEach(r => {
+        const summary = getRegionResourceSummary(r.id);
+        regionTotal += summary.totalCost;
+        html += `<tr>`;
+        html += `<td style="border:1px solid #ddd;padding:4px 8px;font-weight:bold;">${r.name || '無名'}</td>`;
+        html += `<td style="border:1px solid #ddd;padding:4px;text-align:center;">${summary.humanUnits.toFixed(1)}${summary.humanUnit}</td>`;
+        html += `<td style="border:1px solid #ddd;padding:4px;text-align:center;">${summary.itemUnits.toFixed(0)}${summary.itemUnit}</td>`;
+        html += `<td style="border:1px solid #ddd;padding:4px;text-align:right;">¥${Math.round(summary.totalCost).toLocaleString()}</td>`;
+        html += `</tr>`;
+      });
+      html += `<tr style="background:#f0f4f8;font-weight:bold;"><td style="border:1px solid #ddd;padding:4px 8px;">合計</td>`;
+      html += `<td style="border:1px solid #ddd;padding:4px;" colspan="2"></td>`;
+      html += `<td style="border:1px solid #ddd;padding:4px;text-align:right;">¥${Math.round(regionTotal).toLocaleString()}</td></tr>`;
+      html += '</tbody></table></div>';
+
+      dashContent.innerHTML = html;
+    }
+
+    function kpiCard(label, value, color) {
+      return `<div style="background:linear-gradient(135deg,${color}11,${color}22);border:1px solid ${color}33;border-radius:8px;padding:12px;text-align:center;">` +
+        `<div style="font-size:11px;color:#666;margin-bottom:4px;">${label}</div>` +
+        `<div style="font-size:20px;font-weight:bold;color:${color};">${value}</div></div>`;
+    }
+  }
+
   // ===== Resource Plan Table (#19/#20/#21) =====
   function setupPlanTable() {
     const btnPlan = document.getElementById('btn-plan-table');
@@ -5211,6 +5345,7 @@
     initTabs();
     setupAllocationHandlers();
     setupPlanTable();
+    setupDashboard();
     resizeCanvas();
     renderPersonList();
     renderLayerList();

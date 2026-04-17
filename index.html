@@ -53,6 +53,7 @@
           <button class="btn" id="btn-bulk-create" title="一括作成">📋 一括作成</button>
           <button class="btn" id="btn-role-manage" title="役割管理">🏷 役割管理</button>
           <button class="btn" id="btn-plan-table" title="リソース計画テーブル">📊 計画表</button>
+          <button class="btn" id="btn-dashboard" title="ダッシュボード">📈 ダッシュボード</button>
         </div>
         <div class="toolbar-group">
           <button class="btn" id="btn-save-file" title="ファイルに保存">💾 保存</button>
@@ -371,6 +372,18 @@
       <div id="plan-table-container" style="overflow-x:auto;max-height:65vh;"></div>
       <div class="modal-actions" style="margin-top:12px;">
         <button class="btn btn-primary" id="plan-btn-close">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Modal -->
+  <div class="modal-overlay" id="dashboard-modal">
+    <div class="modal-panel" style="width:95%;max-width:1200px;max-height:90vh;overflow:auto;">
+      <h3 class="modal-title">📈 リソースダッシュボード</h3>
+      <div id="dashboard-content"></div>
+      <div class="modal-actions" style="margin-top:12px;">
+        <button class="btn" id="dashboard-btn-export-csv" style="margin-right:8px;">📥 CSVエクスポート</button>
+        <button class="btn btn-primary" id="dashboard-btn-close">閉じる</button>
       </div>
     </div>
   </div>
