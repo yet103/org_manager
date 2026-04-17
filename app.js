@@ -694,6 +694,10 @@
           else if (rAlign === 'right') labelX = e.x - 4;
           ctx.fillText(r.name, labelX, s.y - 3);
         }
+        // Region resource summary
+        if (state.showRegionSummary !== false) {
+          drawRegionSummary(r, s.x, s.y, e.x, e.y);
+        }
 
         // Resize handles
         if (isSelected) {
@@ -831,6 +835,90 @@
     ctx.setLineDash([]);
   }
 
+  // ===== Resource Allocation Canvas Drawing =====
+  function drawMiniAllocationBar(cx, cy, person) {
+    const allocs = person.allocations || [];
+    if (allocs.length === 0) return;
+    const total = getAllocationTotal(person);
+    const barW = 36;
+    const barH = 4;
+    const barX = cx - barW / 2;
+    const barY = cy + 32; // Below icon
+
+    ctx.save();
+    // Background
+    ctx.fillStyle = '#e0e0e0';
+    ctx.fillRect(barX, barY, barW, barH);
+
+    // Allocation segments
+    const colors = ['#3498db', '#2ecc71', '#e67e22', '#9b59b6', '#e74c3c', '#1abc9c'];
+    let offset = 0;
+    allocs.forEach((a, i) => {
+      const segW = barW * Math.min(a.ratio || 0, 1);
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.fillRect(barX + offset, barY, segW, barH);
+      offset += segW;
+    });
+
+    // Border
+    ctx.strokeStyle = total > 1.0 ? '#e74c3c' : '#999';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(barX, barY, barW, barH);
+
+    // Percentage label
+    const pct = Math.round(total * 100);
+    ctx.font = '8px sans-serif';
+    ctx.fillStyle = total > 1.0 ? '#e74c3c' : '#888';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(pct + '%', cx, barY + barH + 1);
+
+    ctx.restore();
+  }
+
+  function drawRegionSummary(region, sx, sy, ex, ey) {
+    const summary = getRegionResourceSummary(region.id);
+    if (summary.resources.length === 0) return;
+
+    ctx.save();
+    const lines = [];
+    if (summary.humanUnits > 0) lines.push(`👥 ${summary.humanUnits.toFixed(1)}${summary.humanUnit}`);
+    if (summary.itemUnits > 0) lines.push(`📦 ${summary.itemUnits.toFixed(0)}${summary.itemUnit}`);
+    if (summary.totalCost > 0) lines.push(`💰 ¥${summary.totalCost.toLocaleString()}`);
+    if (lines.length === 0) { ctx.restore(); return; }
+
+    const fontSize = 10;
+    ctx.font = `${fontSize}px "Segoe UI", "Meiryo", sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+
+    const lineH = fontSize + 3;
+    const totalH = lines.length * lineH;
+    const padX = 6;
+    const padY = 4;
+    const maxW = Math.max(...lines.map(l => ctx.measureText(l).width));
+    const bgW = maxW + padX * 2;
+    const bgH = totalH + padY * 2;
+    const bgX = ex - bgW - 4;
+    const bgY = ey - bgH - 4;
+
+    // Semi-transparent background
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 0.5;
+    roundRect(ctx, bgX, bgY, bgW, bgH, 3);
+    ctx.fill();
+    ctx.stroke();
+
+    // Text
+    ctx.fillStyle = '#555';
+    lines.forEach((line, i) => {
+      ctx.fillText(line, ex - padX - 4, bgY + padY + (i + 1) * lineH);
+    });
+
+    ctx.restore();
+  }
+
   function drawPersons() {
     const sorted = [...state.persons].sort((a, b) => a.y - b.y);
     sorted.forEach(p => {
@@ -844,6 +932,10 @@
         drawPersonIcon(s.x, s.y, p.color, isSelected || isMultiSelected, p.name, personRoles);
       } else {
         drawItemIcon(s.x, s.y, p.color, isSelected || isMultiSelected, p.name, iconType);
+      }
+      // Mini allocation bar
+      if (state.showAllocationBars !== false && p.allocations && p.allocations.length > 0) {
+        drawMiniAllocationBar(s.x, s.y, p);
       }
     });
   }
