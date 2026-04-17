@@ -2,10 +2,10 @@
   <img src="docs/images/screenshot_square.png" alt="組織図マネージャー" width="800">
 </p>
 
-<h1 align="center">🏢 組織図マネージャー</h1>
+<h1 align="center">📐 Drawplan</h1>
 
 <p align="center">
-  <strong>直感的に組織図を作成・編集できるインタラクティブWebアプリ</strong><br>
+  <strong>描いて計画する — リソース配分・定量管理・抽象モデル作図ツール</strong><br>
   サーバー不要。ブラウザだけで動作。データは自動保存。
 </p>
 
@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Server-不要-success?style=flat-square" alt="No Server">
   <img src="https://img.shields.io/badge/Data-自動保存-blue?style=flat-square" alt="Auto Save">
   <img src="https://img.shields.io/badge/Theme-Light%20%2F%20Dark-8B5CF6?style=flat-square" alt="Dark Mode">
-  <img src="https://img.shields.io/badge/Version-v1.7.0-orange?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/Version-v2.0.0-orange?style=flat-square" alt="Version">
 </p>
 
 ---
@@ -85,6 +85,38 @@
 - カスタム役割を作成（名前・色・アイコン）
 - 人物に複数役割を割り当て
 - キャンバス上にバッジで表示
+
+</td>
+</tr>
+<tr>
+<td>
+
+### 📊 リソース管理
+- **容量・単価・配分率** をリソースごとに設定
+- リージョンへの配分先指定とコスト自動計算
+- キャンバス上にミニ配分バー表示
+- リージョン内リソースサマリー
+
+</td>
+<td>
+
+### 📈 計画テーブル＆ダッシュボード
+- **12ヶ月マトリクス** の期間別計画テーブル
+- 期間別オーバーライドで月ごとの配分調整
+- KPIカード・稼働率チャート・リージョン別コスト分析
+- アラート表示（超過・未配分の自動検出）
+- CSVエクスポート
+
+</td>
+</tr>
+<tr>
+<td colspan="2">
+
+### 🗂 メニューバー
+- **ファイル**: 保存/読込/CSVインポート・エクスポート/画像出力/印刷/共有URL
+- **編集**: 元に戻す/やり直し/削除/全選択（ショートカット表示付き）
+- **表示**: スクエア/クォータービュー/ズームリセット/ダークモード
+- **リソース**: リソース追加/一括作成/役割管理/計画テーブル/ダッシュボード
 
 </td>
 </tr>
