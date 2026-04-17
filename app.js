@@ -5080,12 +5080,137 @@
     });
   }
 
+  // ===== Resource Plan Table (#19/#20/#21) =====
+  function setupPlanTable() {
+    const btnPlan = document.getElementById('btn-plan-table');
+    const planModal = document.getElementById('plan-modal');
+    const planStart = document.getElementById('plan-start');
+    const planCount = document.getElementById('plan-count');
+    const planUnit = document.getElementById('plan-unit');
+    const planBtnApply = document.getElementById('plan-btn-apply');
+    const planBtnClose = document.getElementById('plan-btn-close');
+    const planContainer = document.getElementById('plan-table-container');
+    if (!btnPlan || !planModal) return;
+
+    btnPlan.addEventListener('click', () => {
+      planStart.value = state.planConfig.startDate;
+      planCount.value = state.planConfig.periodCount;
+      planUnit.value = state.planConfig.periodUnit;
+      renderPlanTable();
+      planModal.classList.add('show');
+    });
+
+    planBtnClose.addEventListener('click', () => planModal.classList.remove('show'));
+    planModal.addEventListener('click', (e) => { if (e.target === planModal) planModal.classList.remove('show'); });
+
+    planBtnApply.addEventListener('click', () => {
+      state.planConfig.startDate = planStart.value;
+      state.planConfig.periodCount = parseInt(planCount.value) || 12;
+      state.planConfig.periodUnit = planUnit.value;
+      saveState();
+      renderPlanTable();
+    });
+
+    function renderPlanTable() {
+      const labels = generatePeriodLabels();
+      const resources = state.persons.filter(p => p.allocations && p.allocations.length > 0 || p.capacity > 0);
+      const regions = state.regions;
+
+      let html = '<table style="border-collapse:collapse;width:100%;font-size:11px;">';
+      // Header
+      html += '<thead><tr style="background:#f0f4f8;position:sticky;top:0;z-index:1;">';
+      html += '<th style="border:1px solid #ddd;padding:4px 8px;text-align:left;min-width:120px;position:sticky;left:0;background:#f0f4f8;z-index:2;">リソース</th>';
+      html += '<th style="border:1px solid #ddd;padding:4px;text-align:center;width:50px;">容量</th>';
+      html += '<th style="border:1px solid #ddd;padding:4px;text-align:center;width:50px;">単位</th>';
+      html += '<th style="border:1px solid #ddd;padding:4px;text-align:center;width:70px;">単価</th>';
+      labels.forEach(l => {
+        html += `<th style="border:1px solid #ddd;padding:4px;text-align:center;min-width:60px;white-space:nowrap;">${l}</th>`;
+      });
+      html += '<th style="border:1px solid #ddd;padding:4px;text-align:center;width:60px;">平均%</th>';
+      html += '<th style="border:1px solid #ddd;padding:4px;text-align:center;width:80px;">合計コスト</th>';
+      html += '</tr></thead><tbody>';
+
+      // Resource rows
+      const periodTotals = labels.map(() => ({ units: 0, cost: 0 }));
+      let grandTotalCost = 0;
+
+      resources.forEach(p => {
+        const totalAlloc = getAllocationTotal(p);
+        const overrides = p.periodOverrides || {};
+        html += '<tr>';
+        html += `<td style="border:1px solid #ddd;padding:4px 8px;position:sticky;left:0;background:#fff;font-weight:bold;white-space:nowrap;">`;
+        html += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:4px;"></span>`;
+        html += `${p.name}</td>`;
+        html += `<td style="border:1px solid #ddd;padding:4px;text-align:center;">${p.capacity || 0}</td>`;
+        html += `<td style="border:1px solid #ddd;padding:4px;text-align:center;">${p.unit || ''}</td>`;
+        html += `<td style="border:1px solid #ddd;padding:4px;text-align:right;">¥${(p.costPerUnit || 0).toLocaleString()}</td>`;
+
+        let rowTotal = 0;
+        let rowCost = 0;
+        labels.forEach((label, pi) => {
+          const override = overrides[label];
+          const ratio = override !== undefined ? override / 100 : totalAlloc;
+          const pct = Math.round(ratio * 100);
+          const cellCost = (p.costPerUnit || 0) * ratio;
+          rowTotal += pct;
+          rowCost += cellCost;
+          periodTotals[pi].units += (p.capacity || 0) * ratio;
+          periodTotals[pi].cost += cellCost;
+
+          const bgColor = pct > 100 ? '#fde8e8' : pct > 80 ? '#fef3cd' : pct > 0 ? '#e8f5e9' : '#fff';
+          html += `<td style="border:1px solid #ddd;padding:2px;text-align:center;background:${bgColor};">`;
+          html += `<input type="number" min="0" max="200" step="5" value="${pct}" `;
+          html += `data-person-id="${p.id}" data-period="${label}" `;
+          html += `style="width:40px;font-size:10px;text-align:center;border:1px solid #ddd;border-radius:2px;padding:1px;" `;
+          html += `class="plan-cell-input">`;
+          html += '</td>';
+        });
+
+        const avgPct = labels.length > 0 ? Math.round(rowTotal / labels.length) : 0;
+        grandTotalCost += rowCost;
+        html += `<td style="border:1px solid #ddd;padding:4px;text-align:center;font-weight:bold;">${avgPct}%</td>`;
+        html += `<td style="border:1px solid #ddd;padding:4px;text-align:right;">¥${Math.round(rowCost).toLocaleString()}</td>`;
+        html += '</tr>';
+      });
+
+      // Totals row
+      html += '<tr style="background:#f0f4f8;font-weight:bold;">';
+      html += '<td style="border:1px solid #ddd;padding:4px 8px;position:sticky;left:0;background:#f0f4f8;" colspan="4">合計</td>';
+      periodTotals.forEach(pt => {
+        html += `<td style="border:1px solid #ddd;padding:4px;text-align:center;">¥${Math.round(pt.cost).toLocaleString()}</td>`;
+      });
+      html += `<td style="border:1px solid #ddd;padding:4px;text-align:center;">-</td>`;
+      html += `<td style="border:1px solid #ddd;padding:4px;text-align:right;">¥${Math.round(grandTotalCost).toLocaleString()}</td>`;
+      html += '</tr>';
+
+      html += '</tbody></table>';
+      planContainer.innerHTML = html;
+
+      // Attach event handlers to plan cell inputs
+      planContainer.querySelectorAll('.plan-cell-input').forEach(input => {
+        input.addEventListener('change', (e) => {
+          const personId = parseInt(e.target.dataset.personId);
+          const period = e.target.dataset.period;
+          const value = parseInt(e.target.value) || 0;
+          const person = state.persons.find(p => p.id === personId);
+          if (!person) return;
+          if (!person.periodOverrides) person.periodOverrides = {};
+          person.periodOverrides[period] = value;
+          saveState();
+          renderPlanTable();
+          render();
+        });
+      });
+    }
+  }
+
   // ===== Init =====
   function init() {
     loadState();
     loadFromUrl();
     initTabs();
     setupAllocationHandlers();
+    setupPlanTable();
     resizeCanvas();
     renderPersonList();
     renderLayerList();
