@@ -1963,7 +1963,7 @@
     const isItem = opts && opts.itemType === 'item';
     const p = {
       id: state.nextId++,
-      name: name || (isItem ? '新しいアイテム' : '新しい人物'),
+      name: name || (isItem ? '新しい機器' : '新しいリソース'),
       itemType: (opts && opts.itemType) || 'person',
       icon: (opts && opts.icon) || 'person',
       description: (opts && opts.description) || '',

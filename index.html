@@ -4,20 +4,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>組織図マネージャー</title>
-  <meta name="description" content="人物と所属、役割のデータから組織図を作成するアプリケーション">
+  <title>Drawplan</title>
+  <meta name="description" content="描いて計画する — リソース配分・定量管理・抽象モデル作図ツール">
   <link rel="stylesheet" href="index.css">
 </head>
 
 <body>
   <div id="app">
-    <!-- Left Sidebar: Object List -->
+    <!-- Left Sidebar: Resource List -->
     <aside id="sidebar-left">
       <div class="panel-header">
-        <h2>オブジェクト一覧</h2>
+        <h2>リソース一覧</h2>
         <div style="display:flex;gap:4px;">
-          <button class="btn btn-primary btn-icon" id="btn-add-person" title="人物を追加">👤＋</button>
-          <button class="btn btn-primary btn-icon" id="btn-add-item" title="アイテムを追加">📦＋</button>
+          <button class="btn btn-primary btn-icon" id="btn-add-person" title="人的リソースを追加">👤＋</button>
+          <button class="btn btn-primary btn-icon" id="btn-add-item" title="物的リソースを追加">📦＋</button>
         </div>
       </div>
       <div class="search-bar">
@@ -65,7 +65,7 @@
           <button class="btn" id="btn-print" title="印刷プレビュー">🖨 印刷</button>
         </div>
         <div class="toolbar-group">
-          <button class="btn btn-danger" id="btn-delete" title="選択中のアイテムを削除">🗑 削除</button>
+          <button class="btn btn-danger" id="btn-delete" title="選択中のリソースを削除">🗑 削除</button>
         </div>
         <div class="toolbar-group">
           <button class="btn btn-icon" id="btn-undo" title="元に戻す (Ctrl+Z)">↩</button>
@@ -104,7 +104,7 @@
         <h2>プロパティ</h2>
       </div>
       <div id="property-content">
-        <div id="no-selection-msg">アイテムを選択してください</div>
+        <div id="no-selection-msg">リソースを選択してください</div>
         <div id="person-props" style="display:none;">
           <div class="prop-group">
             <div class="prop-label">名前</div>
@@ -150,7 +150,7 @@
         <div id="item-props" style="display:none;">
           <div class="prop-group">
             <div class="prop-label">名前</div>
-            <input type="text" class="prop-input" id="prop-item-name" placeholder="アイテム名">
+            <input type="text" class="prop-input" id="prop-item-name" placeholder="リソース名">
           </div>
           <div class="prop-group">
             <div class="prop-label">アイコン</div>
