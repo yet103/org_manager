@@ -1923,6 +1923,172 @@
     }));
   }
 
+  // ===== Resource Allocation UI =====
+  function renderAllocationsUI(person, containerId, summaryId) {
+    const container = document.getElementById(containerId);
+    const summaryEl = document.getElementById(summaryId);
+    if (!container) return;
+    container.innerHTML = '';
+    const allocs = person.allocations || [];
+    const regions = state.regions;
+
+    allocs.forEach((alloc, idx) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:3px;align-items:center;margin-bottom:4px;padding:4px;background:#f8f9fa;border-radius:4px;flex-wrap:wrap;';
+
+      // Region selector
+      const sel = document.createElement('select');
+      sel.style.cssText = 'flex:1;min-width:60px;font-size:11px;padding:2px;border:1px solid #ccc;border-radius:3px;';
+      const emptyOpt = document.createElement('option');
+      emptyOpt.value = '';
+      emptyOpt.textContent = '-- 選択 --';
+      sel.appendChild(emptyOpt);
+      regions.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.name || '領域' + r.id;
+        if (alloc.targetId === r.id) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', () => {
+        alloc.targetId = parseInt(sel.value) || null;
+        alloc.targetName = regions.find(r => r.id === alloc.targetId)?.name || '';
+        saveState(); render();
+        renderAllocationsUI(person, containerId, summaryId);
+      });
+
+      // Percentage input
+      const pctInput = document.createElement('input');
+      pctInput.type = 'number';
+      pctInput.min = 0;
+      pctInput.max = 100;
+      pctInput.step = 5;
+      pctInput.value = Math.round((alloc.ratio || 0) * 100);
+      pctInput.style.cssText = 'width:50px;font-size:11px;padding:2px;border:1px solid #ccc;border-radius:3px;text-align:right;';
+      pctInput.addEventListener('change', () => {
+        alloc.ratio = Math.min(1, Math.max(0, parseInt(pctInput.value) || 0) / 100);
+        saveState(); render();
+        renderAllocationsUI(person, containerId, summaryId);
+      });
+      const pctLabel = document.createElement('span');
+      pctLabel.textContent = '%';
+      pctLabel.style.cssText = 'font-size:11px;color:#666;';
+
+      // Delete button
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '✕';
+      delBtn.style.cssText = 'background:none;border:none;color:#e74c3c;cursor:pointer;font-size:12px;padding:0 2px;';
+      delBtn.addEventListener('click', () => {
+        person.allocations.splice(idx, 1);
+        saveState(); render();
+        renderAllocationsUI(person, containerId, summaryId);
+      });
+
+      row.appendChild(sel);
+      row.appendChild(pctInput);
+      row.appendChild(pctLabel);
+      row.appendChild(delBtn);
+
+      // Progress bar + calculation row
+      const infoRow = document.createElement('div');
+      infoRow.style.cssText = 'width:100%;display:flex;align-items:center;gap:4px;margin-top:2px;';
+      const bar = document.createElement('div');
+      bar.style.cssText = 'flex:1;height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden;';
+      const fill = document.createElement('div');
+      const pct = (alloc.ratio || 0) * 100;
+      fill.style.cssText = `height:100%;background:${pct > 100 ? '#e74c3c' : '#3498db'};width:${Math.min(pct, 100)}%;border-radius:3px;transition:width 0.2s;`;
+      bar.appendChild(fill);
+      const calcLabel = document.createElement('span');
+      calcLabel.style.cssText = 'font-size:10px;color:#888;white-space:nowrap;';
+      const amount = getAllocationAmount(person, alloc.ratio);
+      const cost = getAllocationCost(person, alloc.ratio);
+      calcLabel.textContent = `→ ${amount.toFixed(1)}${person.unit || ''} / ¥${cost.toLocaleString()}`;
+      infoRow.appendChild(bar);
+      infoRow.appendChild(calcLabel);
+
+      // Note input
+      const noteInput = document.createElement('input');
+      noteInput.type = 'text';
+      noteInput.placeholder = 'メモ';
+      noteInput.value = alloc.note || '';
+      noteInput.style.cssText = 'width:100%;font-size:10px;padding:2px 4px;border:1px solid #ddd;border-radius:3px;margin-top:2px;color:#666;';
+      noteInput.addEventListener('change', () => {
+        alloc.note = noteInput.value;
+        saveState();
+      });
+
+      row.appendChild(infoRow);
+      row.appendChild(noteInput);
+      container.appendChild(row);
+    });
+
+    // Summary
+    if (summaryEl) {
+      const total = getAllocationTotal(person);
+      const unalloc = getUnallocated(person);
+      const totalPct = Math.round(total * 100);
+      const totalAmount = (person.capacity || 0) * total;
+      const totalCost = (person.costPerUnit || 0) * total;
+      const warn = total > 1.0 ? ' ⚠超過!' : '';
+      summaryEl.innerHTML = `配分: <b>${totalPct}%</b> (${totalAmount.toFixed(1)}${person.unit || ''})${warn}<br>` +
+        `未配分: ${Math.round(unalloc * 100)}% / コスト: ¥${totalCost.toLocaleString()}`;
+      summaryEl.style.color = total > 1.0 ? '#e74c3c' : '#888';
+    }
+  }
+
+  function setupAllocationHandlers() {
+    // Person allocation add
+    const btnAddAlloc = document.getElementById('btn-add-allocation');
+    if (btnAddAlloc) {
+      btnAddAlloc.addEventListener('click', () => {
+        const p = state.persons.find(p => p.id === state.selectedId && p.itemType !== 'item');
+        if (!p) return;
+        if (!p.allocations) p.allocations = [];
+        p.allocations.push({ targetId: null, ratio: 0, note: '' });
+        saveState(); render();
+        renderAllocationsUI(p, 'prop-allocations-container', 'prop-allocation-summary');
+      });
+    }
+    // Item allocation add
+    const btnAddItemAlloc = document.getElementById('btn-add-item-allocation');
+    if (btnAddItemAlloc) {
+      btnAddItemAlloc.addEventListener('click', () => {
+        const p = state.persons.find(p => p.id === state.selectedId && p.itemType === 'item');
+        if (!p) return;
+        if (!p.allocations) p.allocations = [];
+        p.allocations.push({ targetId: null, ratio: 0, note: '' });
+        saveState(); render();
+        renderAllocationsUI(p, 'prop-item-allocations-container', 'prop-item-allocation-summary');
+      });
+    }
+    // Person capacity/unit/cost handlers
+    ['prop-capacity', 'prop-unit', 'prop-cost'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => {
+        const p = state.persons.find(p => p.id === state.selectedId && p.itemType !== 'item');
+        if (!p) return;
+        if (id === 'prop-capacity') p.capacity = parseFloat(el.value) || 0;
+        if (id === 'prop-unit') p.unit = el.value;
+        if (id === 'prop-cost') p.costPerUnit = parseFloat(el.value) || 0;
+        saveState(); render();
+        renderAllocationsUI(p, 'prop-allocations-container', 'prop-allocation-summary');
+      });
+    });
+    // Item capacity/unit/cost handlers
+    ['prop-item-capacity', 'prop-item-unit', 'prop-item-cost'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => {
+        const p = state.persons.find(p => p.id === state.selectedId && p.itemType === 'item');
+        if (!p) return;
+        if (id === 'prop-item-capacity') p.capacity = parseFloat(el.value) || 0;
+        if (id === 'prop-item-unit') p.unit = el.value;
+        if (id === 'prop-item-cost') p.costPerUnit = parseFloat(el.value) || 0;
+        saveState(); render();
+        renderAllocationsUI(p, 'prop-item-allocations-container', 'prop-item-allocation-summary');
+      });
+    });
+  }
+
   function migrateResource(p) {
     if (!p.roleIds) p.roleIds = [];
     if (p.capacity === undefined) p.capacity = (p.itemType === 'item') ? 1 : 1.0;
@@ -2105,6 +2271,14 @@
           if (propItemIcon) propItemIcon.value = p.icon || 'server';
           if (propItemDesc) propItemDesc.value = p.description || '';
           if (propItemColor) propItemColor.value = p.color || '#4a8acf';
+          // Resource allocation fields for items
+          const capEl = document.getElementById('prop-item-capacity');
+          const unitEl = document.getElementById('prop-item-unit');
+          const costEl = document.getElementById('prop-item-cost');
+          if (capEl) capEl.value = p.capacity !== undefined ? p.capacity : 1;
+          if (unitEl) unitEl.value = p.unit || '台';
+          if (costEl) costEl.value = p.costPerUnit || 0;
+          renderAllocationsUI(p, 'prop-item-allocations-container', 'prop-item-allocation-summary');
         }
       } else {
         personProps.style.display = 'block';
@@ -2118,6 +2292,14 @@
         if (propEffectiveDate) propEffectiveDate.value = p.effectiveDate || '';
         if (propPhotoUrl) propPhotoUrl.value = p.photoUrl || '';
         renderRoleCheckboxes(p);
+        // Resource allocation fields
+        const capEl = document.getElementById('prop-capacity');
+        const unitEl = document.getElementById('prop-unit');
+        const costEl = document.getElementById('prop-cost');
+        if (capEl) capEl.value = p.capacity !== undefined ? p.capacity : 1.0;
+        if (unitEl) unitEl.value = p.unit || '人月';
+        if (costEl) costEl.value = p.costPerUnit || 0;
+        renderAllocationsUI(p, 'prop-allocations-container', 'prop-allocation-summary');
       }
     } else if (state.selectedType === 'region') {
       const r = state.regions.find(r => r.id === state.selectedId);
@@ -4768,6 +4950,7 @@
     loadState();
     loadFromUrl();
     initTabs();
+    setupAllocationHandlers();
     resizeCanvas();
     renderPersonList();
     renderLayerList();
