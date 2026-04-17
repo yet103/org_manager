@@ -35,7 +35,48 @@
     undoStack: [],
     redoStack: [],
     undoMax: 50,
+    // Resource plan configuration
+    planConfig: {
+      startDate: new Date().getFullYear() + '-04',  // YYYY-MM
+      periodCount: 12,
+      periodUnit: 'month', // 'month' | 'quarter' | 'week'
+    },
   };
+
+  // ===== Period Helpers =====
+  function generatePeriodLabels() {
+    const cfg = state.planConfig;
+    const labels = [];
+    const [startY, startM] = cfg.startDate.split('-').map(Number);
+    for (let i = 0; i < cfg.periodCount; i++) {
+      if (cfg.periodUnit === 'month') {
+        const m = ((startM - 1 + i) % 12) + 1;
+        const y = startY + Math.floor((startM - 1 + i) / 12);
+        labels.push(`${y}/${String(m).padStart(2, '0')}`);
+      } else if (cfg.periodUnit === 'quarter') {
+        const totalM = (startM - 1) + i * 3;
+        const y = startY + Math.floor(totalM / 12);
+        const q = Math.floor((totalM % 12) / 3) + 1;
+        labels.push(`${y}/Q${q}`);
+      } else if (cfg.periodUnit === 'week') {
+        const d = new Date(startY, startM - 1, 1);
+        d.setDate(d.getDate() + i * 7);
+        labels.push(`${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}W${Math.ceil(d.getDate() / 7)}`);
+      }
+    }
+    return labels;
+  }
+
+  function migratePlanConfig(data) {
+    if (!data.planConfig) {
+      data.planConfig = {
+        startDate: new Date().getFullYear() + '-04',
+        periodCount: 12,
+        periodUnit: 'month',
+      };
+    }
+    return data.planConfig;
+  }
 
   // ===== DOM References =====
   const canvas = document.getElementById('main-canvas');
@@ -4334,6 +4375,7 @@
       tabs: state.tabs,
       activeTabId: state.activeTabId,
       nextId: state.nextId,
+      planConfig: state.planConfig,
     };
     try {
       localStorage.setItem('orgchart-state', JSON.stringify(data));
@@ -4363,6 +4405,7 @@
           state.activeTabId = data.activeTabId || data.tabs[0].id;
         }
         state.persons.forEach(migrateResource);
+        state.planConfig = migratePlanConfig(data);
       }
     } catch (e) { /* ignore */ }
   }
