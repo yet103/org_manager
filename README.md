@@ -1,11 +1,11 @@
-<p align="center">
-  <img src="docs/images/screenshot_square.png" alt="組織図マネージャー" width="800">
+﻿<p align="center">
+  <img src="docs/images/screenshot_square.png" alt="Stractal" width="800">
 </p>
 
-<h1 align="center">📐 Drawplan</h1>
+<h1 align="center">📐 Stractal</h1>
 
 <p align="center">
-  <strong>描いて計画する — リソース配分・定量管理・抽象モデル作図ツール</strong><br>
+  <strong>Structure + Fractal — 構造をフラクタルに描く。リソース配分・定量管理・抽象モデル作図ツール</strong><br>
   サーバー不要。ブラウザだけで動作。データは自動保存。
 </p>
 
@@ -196,8 +196,8 @@
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/yet103/org_manager.git
-cd org_manager
+git clone https://github.com/yet103/stractal.git
+cd stractal
 ```
 
 **`index.html` をダブルクリック** で起動！🎉
@@ -264,7 +264,7 @@ cd org_manager
 ## 🗂️ ファイル構成
 
 ```
-org_manager/
+stractal/
 ├── index.html          # メインHTML
 ├── index.css           # スタイルシート
 ├── app.js              # アプリケーションロジック
@@ -293,7 +293,7 @@ org_manager/
 
 ### ▶ オンラインで使う（GitHub Pages）
 
-**https://yet103.github.io/org_manager/**
+**https://yet103.github.io/stractal/**
 
 ブラウザでアクセスするだけ！インストール不要。
 
@@ -301,14 +301,14 @@ org_manager/
 
 | バージョン | リンク | 日付 |
 |:--|:--|:--|
-| **v1.7.0**（最新） | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.7.0.zip) | 2026-04-17 |
-| v1.6.0 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.6.0.zip) | 2026-04-17 |
-| v1.5.3 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.5.3.zip) | 2026-04-16 |
-| v1.5.2 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.5.2.zip) | 2026-04-16 |
-| v1.5.1 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.5.1.zip) | 2026-04-16 |
-| v1.5.0 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.5.0.zip) | 2026-04-16 |
-| v1.4.0 | [📥 ZIPダウンロード](https://github.com/yet103/org_manager/archive/refs/tags/v1.4.0.zip) | 2026-04-15 |
-| 最新開発版 | [ZIPダウンロード（main）](https://github.com/yet103/org_manager/archive/refs/heads/main.zip) | — |
+| **v2.0.0**（最新） | [📥 ZIPダウンロード](https://github.com/yet103/stractal/archive/refs/tags/v2.0.0.zip) | 2026-04-17 |
+| v1.6.0 | [📥 ZIPダウンロード](https://github.com/yet103/stractal/archive/refs/tags/v1.6.0.zip) | 2026-04-17 |
+| v1.5.3 | [📥 ZIPダウンロード](https://github.com/yet103/stractal/archive/refs/tags/v1.5.3.zip) | 2026-04-16 |
+| v1.5.2 | [📥 ZIPダウンロード](https://github.com/yet103/stractal/archive/refs/tags/v1.5.2.zip) | 2026-04-16 |
+| v1.5.1 | [📥 ZIPダウンロード](https://github.com/yet103/stractal/archive/refs/tags/v1.5.1.zip) | 2026-04-16 |
+| v1.5.0 | [📥 ZIPダウンロード](https://github.com/yet103/stractal/archive/refs/tags/v1.5.0.zip) | 2026-04-16 |
+| v1.4.0 | [📥 ZIPダウンロード](https://github.com/yet103/stractal/archive/refs/tags/v1.4.0.zip) | 2026-04-15 |
+| 最新開発版 | [ZIPダウンロード（main）](https://github.com/yet103/stractal/archive/refs/heads/main.zip) | — |
 
 1. ZIPをダウンロード
 2. 解凍して `index.html` をダブルクリック
@@ -317,8 +317,8 @@ org_manager/
 ### ▶ Git Clone
 
 ```bash
-git clone https://github.com/yet103/org_manager.git
-cd org_manager
+git clone https://github.com/yet103/stractal.git
+cd stractal
 # index.html をブラウザで開く
 ```
 
@@ -328,7 +328,7 @@ cd org_manager
 
 ## 📋 更新履歴
 
-### v1.7.0（2026-04-17）
+### v2.0.0（2026-04-17）
 - ✨ **アイコンレジストリによる拡張可能設計** — データ駆動の`ICON_REGISTRY`でアイコンを一元管理、新規アイコン追加はレジストリ1行＋描画関数だけで完結
 - 📦 **アイコン9種→37種に拡充** — 5カテゴリに分類：
   - 🖥 システム構成図（12種）: サーバ / PC / ノートPC / DB / クラウド / コンテナ / API / ターミナル / コード / バグ / セキュリティ / 防御
