@@ -5080,6 +5080,68 @@
     });
   }
 
+  // ===== Menu Bar =====
+  function setupMenuBar() {
+    // Helper: proxy menu click to existing button
+    function proxyClick(menuId, btnId) {
+      const menu = document.getElementById(menuId);
+      const btn = document.getElementById(btnId);
+      if (menu && btn) menu.addEventListener('click', () => btn.click());
+    }
+
+    // File menu
+    proxyClick('menu-save', 'btn-save-file');
+    proxyClick('menu-load', 'btn-load-file');
+    proxyClick('menu-import-csv', 'btn-import-csv');
+    proxyClick('menu-export-png', 'btn-export-png');
+    proxyClick('menu-print', 'btn-print');
+    proxyClick('menu-share-url', 'btn-share-url');
+
+    // CSV export from dashboard
+    const menuExportCsv = document.getElementById('menu-export-csv');
+    if (menuExportCsv) {
+      menuExportCsv.addEventListener('click', () => {
+        const dashExport = document.getElementById('dashboard-btn-export-csv');
+        if (dashExport) dashExport.click();
+      });
+    }
+
+    // Edit menu
+    proxyClick('menu-undo', 'btn-undo');
+    proxyClick('menu-redo', 'btn-redo');
+    proxyClick('menu-delete', 'btn-delete');
+    const menuSelectAll = document.getElementById('menu-select-all');
+    if (menuSelectAll) {
+      menuSelectAll.addEventListener('click', () => {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true }));
+      });
+    }
+
+    // View menu
+    proxyClick('menu-square-view', 'btn-square-view');
+    proxyClick('menu-quarter-view', 'btn-quarter-view');
+    proxyClick('menu-zoom-reset', 'btn-zoom-reset');
+    proxyClick('menu-dark-mode', 'btn-dark-mode');
+
+    // Resource menu
+    const menuAddPerson = document.getElementById('menu-add-person');
+    if (menuAddPerson) {
+      menuAddPerson.addEventListener('click', () => {
+        document.getElementById('btn-add-person')?.click();
+      });
+    }
+    const menuAddItem = document.getElementById('menu-add-item');
+    if (menuAddItem) {
+      menuAddItem.addEventListener('click', () => {
+        document.getElementById('btn-add-item')?.click();
+      });
+    }
+    proxyClick('menu-bulk-create', 'btn-bulk-create');
+    proxyClick('menu-role-manage', 'btn-role-manage');
+    proxyClick('menu-plan-table', 'btn-plan-table');
+    proxyClick('menu-dashboard', 'btn-dashboard');
+  }
+
   // ===== Dashboard (#22-#26) =====
   function setupDashboard() {
     const btnDash = document.getElementById('btn-dashboard');
@@ -5346,6 +5408,7 @@
     setupAllocationHandlers();
     setupPlanTable();
     setupDashboard();
+    setupMenuBar();
     resizeCanvas();
     renderPersonList();
     renderLayerList();

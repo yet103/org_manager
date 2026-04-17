@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Drawplan</title>
   <meta name="description" content="描いて計画する — リソース配分・定量管理・抽象モデル作図ツール">
-  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="index.css?v=2">
 </head>
 
 <body>
@@ -37,6 +37,57 @@
       <div id="tab-bar">
         <div id="tab-list"></div>
         <button class="btn btn-icon tab-add-btn" id="btn-add-tab" title="新規タブ">＋</button>
+      </div>
+      <!-- Menu Bar -->
+      <div id="menubar">
+        <div class="menu-item">
+          <button class="menu-btn">ファイル</button>
+          <div class="menu-dropdown">
+            <button class="menu-action" id="menu-save">💾 保存</button>
+            <button class="menu-action" id="menu-load">📂 読込</button>
+            <div class="menu-divider"></div>
+            <button class="menu-action" id="menu-import-csv">📊 CSVインポート</button>
+            <button class="menu-action" id="menu-export-csv">📥 CSVエクスポート</button>
+            <div class="menu-divider"></div>
+            <button class="menu-action" id="menu-export-png">📸 画像出力</button>
+            <button class="menu-action" id="menu-print">🖨 印刷</button>
+            <div class="menu-divider"></div>
+            <button class="menu-action" id="menu-share-url">🔗 共有URLコピー</button>
+          </div>
+        </div>
+        <div class="menu-item">
+          <button class="menu-btn">編集</button>
+          <div class="menu-dropdown">
+            <button class="menu-action" id="menu-undo">↩ 元に戻す <span class="menu-shortcut">Ctrl+Z</span></button>
+            <button class="menu-action" id="menu-redo">↪ やり直し <span class="menu-shortcut">Ctrl+Y</span></button>
+            <div class="menu-divider"></div>
+            <button class="menu-action" id="menu-delete">🗑 削除 <span class="menu-shortcut">Del</span></button>
+            <button class="menu-action" id="menu-select-all">☑ 全選択 <span class="menu-shortcut">Ctrl+A</span></button>
+          </div>
+        </div>
+        <div class="menu-item">
+          <button class="menu-btn">表示</button>
+          <div class="menu-dropdown">
+            <button class="menu-action" id="menu-square-view">□ スクエアビュー</button>
+            <button class="menu-action" id="menu-quarter-view">◇ クォータービュー</button>
+            <div class="menu-divider"></div>
+            <button class="menu-action" id="menu-zoom-reset">⟲ ズームリセット</button>
+            <button class="menu-action" id="menu-dark-mode">🌙 ダークモード</button>
+          </div>
+        </div>
+        <div class="menu-item">
+          <button class="menu-btn">リソース</button>
+          <div class="menu-dropdown">
+            <button class="menu-action" id="menu-add-person">👤＋ 人的リソース追加</button>
+            <button class="menu-action" id="menu-add-item">📦＋ 物的リソース追加</button>
+            <div class="menu-divider"></div>
+            <button class="menu-action" id="menu-bulk-create">📋 一括作成</button>
+            <button class="menu-action" id="menu-role-manage">🏷 役割管理</button>
+            <div class="menu-divider"></div>
+            <button class="menu-action" id="menu-plan-table">📊 リソース計画テーブル</button>
+            <button class="menu-action" id="menu-dashboard">📈 ダッシュボード</button>
+          </div>
+        </div>
       </div>
       <div id="toolbar">
         <div class="toolbar-group">

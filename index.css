@@ -138,6 +138,92 @@ body {
   font-style: italic;
 }
 
+/* ===== Menu Bar ===== */
+#menubar {
+  display: flex;
+  align-items: stretch;
+  height: 28px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 4px;
+  gap: 0;
+  font-size: 13px;
+  overflow: visible;
+  position: relative;
+  z-index: 2001;
+}
+
+.menu-item {
+  position: relative;
+  display: inline-block;
+}
+
+.menu-btn {
+  background: none;
+  border: none;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-family: var(--font-family);
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+
+.menu-btn:hover {
+  background: rgba(74, 138, 207, 0.12);
+}
+
+.menu-dropdown {
+  display: none !important;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 220px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  padding: 4px 0;
+  z-index: 2000;
+}
+
+.menu-item:hover > .menu-dropdown {
+  display: block !important;
+}
+
+.menu-action {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 6px 16px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-family: var(--font-family);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.menu-action:hover {
+  background: rgba(74, 138, 207, 0.1);
+}
+
+.menu-shortcut {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding-left: 24px;
+}
+
+.menu-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 8px;
+}
+
 /* ===== Canvas Area ===== */
 #canvas-area {
   flex: 1;
@@ -678,12 +764,43 @@ body.dark-mode .modal-textarea {
   border-color: #3a3a5a;
 }
 
+body.dark-mode #menubar {
+  background: #16213e;
+}
+
+body.dark-mode .menu-btn {
+  color: #e0e0e0;
+}
+
+body.dark-mode .menu-btn:hover {
+  background: rgba(93, 156, 236, 0.15);
+}
+
+body.dark-mode .menu-dropdown {
+  background: #1a1a2e;
+  border-color: #3a3a5a;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+body.dark-mode .menu-action {
+  color: #e0e0e0;
+}
+
+body.dark-mode .menu-action:hover {
+  background: rgba(93, 156, 236, 0.12);
+}
+
+body.dark-mode .menu-divider {
+  background: #3a3a5a;
+}
+
 /* ===== Print Layout ===== */
 @media print {
 
   #sidebar-left,
   #sidebar-right,
-  #toolbar {
+  #toolbar,
+  #menubar {
     display: none !important;
   }
 
