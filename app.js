@@ -965,6 +965,7 @@
     { id: 'office',     label: '🏢 オフィス機器' },
     { id: 'stationery', label: '✏️ 文房具' },
     { id: 'general',    label: '⚡ 汎用' },
+    { id: 'flowchart',  label: '📐 フローチャート' },
   ];
 
   // Registry entries: { id, name, emoji, category, draw }
@@ -1672,6 +1673,187 @@
   // General
   registerIcon('gear', '設定',   '⚙', 'general', drawIconGear);
   registerIcon('star', 'スター', '⭐', 'general', drawIconStar);
+  // Flowchart
+  registerIcon('fc_process',    '処理',         '▭', 'flowchart', drawIconFcProcess);
+  registerIcon('fc_decision',   '判断',         '◇', 'flowchart', drawIconFcDecision);
+  registerIcon('fc_terminal',   '開始/終了',    '⬭', 'flowchart', drawIconFcTerminal);
+  registerIcon('fc_data',       'データ',       '▱', 'flowchart', drawIconFcData);
+  registerIcon('fc_document',   '書類',         '📄', 'flowchart', drawIconFcDocument);
+  registerIcon('fc_predefined', '定義済処理',   '⊞', 'flowchart', drawIconFcPredefined);
+  registerIcon('fc_manual',     '手作業',       '⏢', 'flowchart', drawIconFcManual);
+  registerIcon('fc_connector',  '結合子',       '○', 'flowchart', drawIconFcConnector);
+  registerIcon('fc_loop',       'ループ',       '⟲', 'flowchart', drawIconFcLoop);
+  registerIcon('fc_display',    '表示',         '⏣', 'flowchart', drawIconFcDisplay);
+
+  // --- Flowchart drawing functions ---
+  function drawIconFcProcess(ctx, cx, cy, s) {
+    // Rectangle (処理)
+    const w = s * 0.8, h = s * 0.55;
+    ctx.fillStyle = '#e3f2fd';
+    ctx.strokeStyle = '#1565c0';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(cx - w/2, cy - h/2, w, h);
+    ctx.strokeRect(cx - w/2, cy - h/2, w, h);
+  }
+  function drawIconFcDecision(ctx, cx, cy, s) {
+    // Diamond (判断)
+    const r = s * 0.4;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r);
+    ctx.lineTo(cx + r, cy);
+    ctx.lineTo(cx, cy + r);
+    ctx.lineTo(cx - r, cy);
+    ctx.closePath();
+    ctx.fillStyle = '#fff8e1';
+    ctx.fill();
+    ctx.strokeStyle = '#f57f17';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  function drawIconFcTerminal(ctx, cx, cy, s) {
+    // Rounded rectangle / Stadium (開始/終了)
+    const w = s * 0.75, h = s * 0.45;
+    const rad = h / 2;
+    ctx.beginPath();
+    ctx.moveTo(cx - w/2 + rad, cy - h/2);
+    ctx.lineTo(cx + w/2 - rad, cy - h/2);
+    ctx.arc(cx + w/2 - rad, cy, rad, -Math.PI/2, Math.PI/2);
+    ctx.lineTo(cx - w/2 + rad, cy + h/2);
+    ctx.arc(cx - w/2 + rad, cy, rad, Math.PI/2, -Math.PI/2);
+    ctx.closePath();
+    ctx.fillStyle = '#e8f5e9';
+    ctx.fill();
+    ctx.strokeStyle = '#2e7d32';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  function drawIconFcData(ctx, cx, cy, s) {
+    // Parallelogram (データ)
+    const w = s * 0.8, h = s * 0.5;
+    const skew = s * 0.15;
+    ctx.beginPath();
+    ctx.moveTo(cx - w/2 + skew, cy - h/2);
+    ctx.lineTo(cx + w/2, cy - h/2);
+    ctx.lineTo(cx + w/2 - skew, cy + h/2);
+    ctx.lineTo(cx - w/2, cy + h/2);
+    ctx.closePath();
+    ctx.fillStyle = '#f3e5f5';
+    ctx.fill();
+    ctx.strokeStyle = '#7b1fa2';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  function drawIconFcDocument(ctx, cx, cy, s) {
+    // Document shape with wavy bottom
+    const w = s * 0.75, h = s * 0.55;
+    const x0 = cx - w/2, y0 = cy - h/2;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x0 + w, y0);
+    ctx.lineTo(x0 + w, y0 + h * 0.8);
+    ctx.bezierCurveTo(x0 + w * 0.7, y0 + h * 0.65, x0 + w * 0.3, y0 + h * 1.05, x0, y0 + h * 0.8);
+    ctx.closePath();
+    ctx.fillStyle = '#fff3e0';
+    ctx.fill();
+    ctx.strokeStyle = '#e65100';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  function drawIconFcPredefined(ctx, cx, cy, s) {
+    // Rectangle with inner vertical lines (定義済処理)
+    const w = s * 0.8, h = s * 0.55;
+    const inset = s * 0.1;
+    ctx.fillStyle = '#e0f7fa';
+    ctx.strokeStyle = '#00695c';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(cx - w/2, cy - h/2, w, h);
+    ctx.strokeRect(cx - w/2, cy - h/2, w, h);
+    // Inner vertical lines
+    ctx.beginPath();
+    ctx.moveTo(cx - w/2 + inset, cy - h/2);
+    ctx.lineTo(cx - w/2 + inset, cy + h/2);
+    ctx.moveTo(cx + w/2 - inset, cy - h/2);
+    ctx.lineTo(cx + w/2 - inset, cy + h/2);
+    ctx.stroke();
+  }
+  function drawIconFcManual(ctx, cx, cy, s) {
+    // Trapezoid (手作業)
+    const w = s * 0.8, h = s * 0.5;
+    const top = s * 0.15;
+    ctx.beginPath();
+    ctx.moveTo(cx - w/2 + top, cy - h/2);
+    ctx.lineTo(cx + w/2 - top, cy - h/2);
+    ctx.lineTo(cx + w/2, cy + h/2);
+    ctx.lineTo(cx - w/2, cy + h/2);
+    ctx.closePath();
+    ctx.fillStyle = '#fce4ec';
+    ctx.fill();
+    ctx.strokeStyle = '#c62828';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  function drawIconFcConnector(ctx, cx, cy, s) {
+    // Circle (結合子)
+    const r = s * 0.25;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = '#f5f5f5';
+    ctx.fill();
+    ctx.strokeStyle = '#424242';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  function drawIconFcLoop(ctx, cx, cy, s) {
+    // Loop symbol: top pentagon, bottom bar
+    const w = s * 0.7, h = s * 0.55;
+    const notch = s * 0.12;
+    ctx.beginPath();
+    ctx.moveTo(cx - w/2 + notch, cy - h/2);
+    ctx.lineTo(cx + w/2 - notch, cy - h/2);
+    ctx.lineTo(cx + w/2, cy - h/2 + notch);
+    ctx.lineTo(cx + w/2, cy + h/2 - notch);
+    ctx.lineTo(cx + w/2 - notch, cy + h/2);
+    ctx.lineTo(cx - w/2 + notch, cy + h/2);
+    ctx.lineTo(cx - w/2, cy + h/2 - notch);
+    ctx.lineTo(cx - w/2, cy - h/2 + notch);
+    ctx.closePath();
+    ctx.fillStyle = '#ede7f6';
+    ctx.fill();
+    ctx.strokeStyle = '#4527a0';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // Loop arrow
+    ctx.beginPath();
+    ctx.arc(cx, cy, s * 0.15, -Math.PI * 0.8, Math.PI * 0.5);
+    ctx.strokeStyle = '#4527a0';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    // Arrowhead
+    const ax = cx + s * 0.15 * Math.cos(Math.PI * 0.5);
+    const ay = cy + s * 0.15 * Math.sin(Math.PI * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(ax - 3, ay - 3);
+    ctx.lineTo(ax, ay);
+    ctx.lineTo(ax + 3, ay - 3);
+    ctx.stroke();
+  }
+  function drawIconFcDisplay(ctx, cx, cy, s) {
+    // Display shape: left pointed, right curved
+    const w = s * 0.8, h = s * 0.5;
+    const pt = s * 0.15;
+    ctx.beginPath();
+    ctx.moveTo(cx - w/2 + pt, cy - h/2);
+    ctx.lineTo(cx + w/2 - pt, cy - h/2);
+    ctx.bezierCurveTo(cx + w/2 + pt * 0.5, cy - h/2, cx + w/2 + pt * 0.5, cy + h/2, cx + w/2 - pt, cy + h/2);
+    ctx.lineTo(cx - w/2 + pt, cy + h/2);
+    ctx.lineTo(cx - w/2, cy);
+    ctx.closePath();
+    ctx.fillStyle = '#e8eaf6';
+    ctx.fill();
+    ctx.strokeStyle = '#283593';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
 
 
   function roundRect(ctx, x, y, w, h, r) {
