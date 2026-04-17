@@ -43,15 +43,59 @@ body {
   width: 100vw;
 }
 
-/* ===== Left Sidebar ===== */
+/* ===== Left Sidebar (Floating Panel) ===== */
 #sidebar-left {
-  width: 220px;
-  min-width: 220px;
+  width: 240px;
+  min-width: 240px;
+  max-height: 80vh;
   background: var(--bg-sidebar);
-  border-right: 1px solid var(--border-color);
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: fixed;
+  top: 80px;
+  left: 16px;
+  z-index: 900;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+
+.floating-panel-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--accent);
+  color: #fff;
+  cursor: grab;
+  user-select: none;
+  border-radius: 8px 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.floating-panel-titlebar:active {
+  cursor: grabbing;
+}
+
+.floating-panel-title {
+  font-size: 12px;
+}
+
+.floating-panel-close {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 4px;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+}
+
+.floating-panel-close:hover {
+  opacity: 1;
 }
 
 #sidebar-left .panel-header {
@@ -274,15 +318,22 @@ body {
   height: 100%;
 }
 
-/* ===== Right Panel ===== */
+/* ===== Right Panel (Floating) ===== */
 #sidebar-right {
-  width: 220px;
-  min-width: 220px;
+  width: 240px;
+  min-width: 240px;
+  max-height: 80vh;
   background: var(--bg-sidebar);
-  border-left: 1px solid var(--border-color);
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: fixed;
+  top: 80px;
+  right: 16px;
+  z-index: 900;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
 }
 
 #sidebar-right .panel-header {

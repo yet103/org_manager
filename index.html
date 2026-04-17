@@ -11,8 +11,12 @@
 
 <body>
   <div id="app">
-    <!-- Left Sidebar: Resource List -->
-    <aside id="sidebar-left">
+    <!-- Left Sidebar: Resource List (floating, initially hidden) -->
+    <aside id="sidebar-left" class="floating-panel" style="display:none;">
+      <div class="floating-panel-titlebar">
+        <span class="floating-panel-title">リソース一覧</span>
+        <button class="floating-panel-close" id="sidebar-left-close" title="閉じる">✕</button>
+      </div>
       <div class="panel-header">
         <h2>リソース一覧</h2>
         <div style="display:flex;gap:4px;">
@@ -73,6 +77,9 @@
             <div class="menu-divider"></div>
             <button class="menu-action" id="menu-zoom-reset">⟲ ズームリセット</button>
             <button class="menu-action" id="menu-dark-mode">🌙 ダークモード</button>
+            <div class="menu-divider"></div>
+            <button class="menu-action" id="menu-toggle-sidebar">📋 リソースパネル</button>
+            <button class="menu-action" id="menu-toggle-property">🔧 プロパティパネル</button>
           </div>
         </div>
         <div class="menu-item">
@@ -151,8 +158,12 @@
       </div>
     </main>
 
-    <!-- Right Sidebar: Properties -->
-    <aside id="sidebar-right">
+    <!-- Right Sidebar: Properties (floating, initially hidden) -->
+    <aside id="sidebar-right" class="floating-panel" style="display:none;">
+      <div class="floating-panel-titlebar">
+        <span class="floating-panel-title">プロパティ</span>
+        <button class="floating-panel-close" id="sidebar-right-close" title="閉じる">✕</button>
+      </div>
       <div class="panel-header">
         <h2>プロパティ</h2>
       </div>

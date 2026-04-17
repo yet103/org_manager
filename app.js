@@ -2415,6 +2415,9 @@
         }
       } else {
         personProps.style.display = 'block';
+        // Auto-show floating property panel
+        const sr = document.getElementById('sidebar-right');
+        if (sr && sr.style.display === 'none') sr.style.display = 'flex';
         propName.value = p.name;
         propRole.value = p.role;
         propAffiliation.value = p.affiliation;
@@ -5122,6 +5125,62 @@
     proxyClick('menu-quarter-view', 'btn-quarter-view');
     proxyClick('menu-zoom-reset', 'btn-zoom-reset');
     proxyClick('menu-dark-mode', 'btn-dark-mode');
+
+    // Panel toggles
+    const sidebarLeft = document.getElementById('sidebar-left');
+    const sidebarRight = document.getElementById('sidebar-right');
+
+    function togglePanel(panel) {
+      if (!panel) return;
+      if (panel.style.display === 'none') {
+        panel.style.display = 'flex';
+      } else {
+        panel.style.display = 'none';
+      }
+    }
+
+    const menuToggleSidebar = document.getElementById('menu-toggle-sidebar');
+    if (menuToggleSidebar) {
+      menuToggleSidebar.addEventListener('click', () => togglePanel(sidebarLeft));
+    }
+    const menuToggleProperty = document.getElementById('menu-toggle-property');
+    if (menuToggleProperty) {
+      menuToggleProperty.addEventListener('click', () => togglePanel(sidebarRight));
+    }
+
+    // Close buttons
+    const sidebarLeftClose = document.getElementById('sidebar-left-close');
+    if (sidebarLeftClose) {
+      sidebarLeftClose.addEventListener('click', () => { sidebarLeft.style.display = 'none'; });
+    }
+    const sidebarRightClose = document.getElementById('sidebar-right-close');
+    if (sidebarRightClose) {
+      sidebarRightClose.addEventListener('click', () => { sidebarRight.style.display = 'none'; });
+    }
+
+    // Drag floating panels
+    function makeDraggable(panel) {
+      const titlebar = panel.querySelector('.floating-panel-titlebar');
+      if (!titlebar) return;
+      let isDragging = false, startX, startY, origLeft, origTop;
+      titlebar.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = panel.getBoundingClientRect();
+        origLeft = rect.left;
+        origTop = rect.top;
+        e.preventDefault();
+      });
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        panel.style.left = (origLeft + e.clientX - startX) + 'px';
+        panel.style.top = (origTop + e.clientY - startY) + 'px';
+      });
+      document.addEventListener('mouseup', () => { isDragging = false; });
+    }
+    if (sidebarLeft) makeDraggable(sidebarLeft);
+    if (sidebarRight) makeDraggable(sidebarRight);
 
     // Resource menu
     const menuAddPerson = document.getElementById('menu-add-person');
