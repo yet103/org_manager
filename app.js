@@ -1923,6 +1923,52 @@
     }));
   }
 
+  function migrateResource(p) {
+    if (!p.roleIds) p.roleIds = [];
+    if (p.capacity === undefined) p.capacity = (p.itemType === 'item') ? 1 : 1.0;
+    if (!p.unit) p.unit = (p.itemType === 'item') ? '台' : '人月';
+    if (p.costPerUnit === undefined) p.costPerUnit = 0;
+    if (!p.allocations) p.allocations = [];
+  }
+
+  function getAllocationTotal(p) {
+    return (p.allocations || []).reduce((sum, a) => sum + (a.ratio || 0), 0);
+  }
+
+  function getUnallocated(p) {
+    return Math.max(0, 1.0 - getAllocationTotal(p));
+  }
+
+  function getAllocationAmount(p, ratio) {
+    return (p.capacity || 0) * (ratio || 0);
+  }
+
+  function getAllocationCost(p, ratio) {
+    return (p.costPerUnit || 0) * (ratio || 0);
+  }
+
+  function getRegionResourceSummary(regionId) {
+    const summary = { humanUnits: 0, humanUnit: '人月', itemUnits: 0, itemUnit: '台', totalCost: 0, resources: [] };
+    state.persons.forEach(p => {
+      (p.allocations || []).forEach(a => {
+        if (a.targetId === regionId) {
+          const amount = getAllocationAmount(p, a.ratio);
+          const cost = getAllocationCost(p, a.ratio);
+          if (p.itemType === 'item') {
+            summary.itemUnits += amount;
+            summary.itemUnit = p.unit || '台';
+          } else {
+            summary.humanUnits += amount;
+            summary.humanUnit = p.unit || '人月';
+          }
+          summary.totalCost += cost;
+          summary.resources.push({ id: p.id, name: p.name, type: p.itemType, ratio: a.ratio, amount, cost });
+        }
+      });
+    });
+    return summary;
+  }
+
   function restoreSnapshot(snap) {
     state.persons = snap.persons;
     state.regions = snap.regions;
@@ -1930,7 +1976,7 @@
     state.connectors = snap.connectors || [];
     state.textAnnotations = snap.textAnnotations || [];
     state.nextId = snap.nextId;
-    state.persons.forEach(p => { if (!p.roleIds) p.roleIds = []; });
+    state.persons.forEach(migrateResource);
     clearSelection();
     state.multiSelection = { personIds: [], regionIds: [], textIds: [], connectorIds: [] };
     renderPersonList();
@@ -1979,6 +2025,11 @@
       effectiveDate: (opts && opts.effectiveDate) || '',
       photoUrl: (opts && opts.photoUrl) || '',
       layerId: (opts && opts.layerId) || state.activeLayerId,
+      // Resource management fields
+      capacity: (opts && opts.capacity !== undefined) ? opts.capacity : (isItem ? 1 : 1.0),
+      unit: (opts && opts.unit) || (isItem ? '台' : '人月'),
+      costPerUnit: (opts && opts.costPerUnit !== undefined) ? opts.costPerUnit : 0,
+      allocations: (opts && opts.allocations) || [],
     };
     state.persons.push(p);
     return p;
@@ -3228,6 +3279,7 @@
             state.activeTabId = null;
           }
           if (data.nextId) state.nextId = data.nextId;
+          state.persons.forEach(migrateResource);
           clearSelection();
           initTabs();
           saveState();
@@ -4036,7 +4088,7 @@
           state.tabs = data.tabs;
           state.activeTabId = data.activeTabId || data.tabs[0].id;
         }
-        state.persons.forEach(p => { if (!p.roleIds) p.roleIds = []; });
+        state.persons.forEach(migrateResource);
       }
     } catch (e) { /* ignore */ }
   }
@@ -4410,7 +4462,7 @@
         if (data.connectors) state.connectors = data.connectors;
         if (data.textAnnotations) state.textAnnotations = data.textAnnotations;
         if (data.nextId) state.nextId = data.nextId;
-        state.persons.forEach(p => { if (!p.roleIds) p.roleIds = []; });
+        state.persons.forEach(migrateResource);
         saveState();
         renderPersonList();
         render();
