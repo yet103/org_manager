@@ -958,8 +958,26 @@
     ctx.restore();
   }
 
-  // ===== Item Icon Drawing =====
-  const ITEM_ICONS = ['server','pc','printer','phone','cloud','database','folder','gear','star'];
+  // ===== Icon Registry (Data-driven) =====
+  const ICON_CATEGORIES = [
+    { id: 'system',     label: '🖥 システム構成図' },
+    { id: 'network',    label: '🌐 ネットワーク構成図' },
+    { id: 'office',     label: '🏢 オフィス機器' },
+    { id: 'stationery', label: '✏️ 文房具' },
+    { id: 'general',    label: '⚡ 汎用' },
+  ];
+
+  // Registry entries: { id, name, emoji, category, draw }
+  // To add a new icon: add an entry here + define a drawIconXxx function
+  const ICON_REGISTRY = [];
+  function registerIcon(id, name, emoji, category, drawFn) {
+    ICON_REGISTRY.push({ id, name, emoji, category, draw: drawFn });
+  }
+
+  // Helper: get icon entry by id
+  function getIconEntry(iconId) {
+    return ICON_REGISTRY.find(e => e.id === iconId);
+  }
 
   function drawItemIcon(cx, cy, color, selected, name, iconType) {
     const size = 20;
@@ -971,18 +989,12 @@
     ctx.ellipse(cx + 1, cy + size + 4, size * 0.6, 4, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Draw icon based on type
-    switch (iconType) {
-      case 'server': drawIconServer(cx, cy, size, color); break;
-      case 'pc': drawIconPC(cx, cy, size, color); break;
-      case 'printer': drawIconPrinter(cx, cy, size, color); break;
-      case 'phone': drawIconPhone(cx, cy, size, color); break;
-      case 'cloud': drawIconCloud(cx, cy, size, color); break;
-      case 'database': drawIconDatabase(cx, cy, size, color); break;
-      case 'folder': drawIconFolder(cx, cy, size, color); break;
-      case 'gear': drawIconGear(cx, cy, size, color); break;
-      case 'star': drawIconStar(cx, cy, size, color); break;
-      default: drawIconServer(cx, cy, size, color); break;
+    // Draw icon from registry
+    const entry = getIconEntry(iconType);
+    if (entry && entry.draw) {
+      entry.draw(cx, cy, size, color);
+    } else {
+      drawIconServer(cx, cy, size, color);
     }
 
     // Selection highlight
@@ -1179,6 +1191,488 @@
     ctx.closePath(); ctx.fill();
     ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1; ctx.stroke();
   }
+
+  // --- New icon drawing functions ---
+  function drawIconLaptop(cx, cy, s, color) {
+    const w = s * 1.3, h = s * 0.85;
+    const x = cx - w / 2, y = cy - h / 2 - 2;
+    const grad = ctx.createLinearGradient(x, y, x + w, y + h);
+    grad.addColorStop(0, lightenColor(color, 15)); grad.addColorStop(1, darkenColor(color, 15));
+    ctx.fillStyle = grad;
+    roundRect(ctx, x, y, w, h, 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 2); ctx.stroke();
+    ctx.fillStyle = lightenColor(color, 45);
+    roundRect(ctx, x + 2, y + 2, w - 4, h - 5, 1); ctx.fill();
+    // Base
+    ctx.fillStyle = darkenColor(color, 10);
+    ctx.beginPath();
+    ctx.moveTo(x - 3, y + h + 1); ctx.lineTo(x + w + 3, y + h + 1);
+    ctx.lineTo(x + w, y + h + 4); ctx.lineTo(x, y + h + 4);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 0.7; ctx.stroke();
+  }
+
+  function drawIconContainer(cx, cy, s, color) {
+    const w = s * 1.2, h = s * 0.9;
+    const x = cx - w / 2, y = cy - h / 2;
+    ctx.fillStyle = lightenColor(color, 10);
+    roundRect(ctx, x, y, w, h, 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 2); ctx.stroke();
+    // Container lines
+    ctx.strokeStyle = darkenColor(color, 15); ctx.lineWidth = 0.8;
+    for (let i = 1; i <= 3; i++) {
+      const lx = x + w * i / 4;
+      ctx.beginPath(); ctx.moveTo(lx, y + 2); ctx.lineTo(lx, y + h - 2); ctx.stroke();
+    }
+    // Whale tail hint
+    ctx.fillStyle = darkenColor(color, 20);
+    ctx.beginPath(); ctx.moveTo(cx - 3, y - 3); ctx.lineTo(cx, y - 6); ctx.lineTo(cx + 3, y - 3); ctx.closePath(); ctx.fill();
+  }
+
+  function drawIconApi(cx, cy, s, color) {
+    const r = s * 0.65;
+    ctx.fillStyle = lightenColor(color, 15);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1; ctx.stroke();
+    // Lightning bolt
+    ctx.fillStyle = darkenColor(color, 25);
+    ctx.beginPath();
+    ctx.moveTo(cx + 2, cy - r * 0.55); ctx.lineTo(cx - 3, cy + 1);
+    ctx.lineTo(cx + 1, cy + 1); ctx.lineTo(cx - 2, cy + r * 0.55);
+    ctx.lineTo(cx + 3, cy - 1); ctx.lineTo(cx - 1, cy - 1);
+    ctx.closePath(); ctx.fill();
+  }
+
+  function drawIconTerminal(cx, cy, s, color) {
+    const w = s * 1.3, h = s * 1.0;
+    const x = cx - w / 2, y = cy - h / 2;
+    ctx.fillStyle = '#1e1e1e';
+    roundRect(ctx, x, y, w, h, 3); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 20); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 3); ctx.stroke();
+    // Prompt
+    ctx.fillStyle = lightenColor(color, 30);
+    ctx.font = (s * 0.55) + 'px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('>_', x + 4, cy + 1);
+  }
+
+  function drawIconCode(cx, cy, s, color) {
+    const w = s * 1.2, h = s * 1.0;
+    const x = cx - w / 2, y = cy - h / 2;
+    ctx.fillStyle = lightenColor(color, 35);
+    roundRect(ctx, x, y, w, h, 3); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 3); ctx.stroke();
+    ctx.fillStyle = darkenColor(color, 20);
+    ctx.font = 'bold ' + (s * 0.6) + 'px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('</>', cx, cy + 1);
+  }
+
+  function drawIconBug(cx, cy, s, color) {
+    const r = s * 0.5;
+    ctx.fillStyle = lightenColor(color, 10);
+    ctx.beginPath(); ctx.ellipse(cx, cy + 2, r, r * 1.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1; ctx.stroke();
+    // Head
+    ctx.beginPath(); ctx.arc(cx, cy - r * 0.8, r * 0.45, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // Legs
+    ctx.lineWidth = 1.2;
+    for (let side = -1; side <= 1; side += 2) {
+      for (let i = 0; i < 3; i++) {
+        const ly = cy - 2 + i * 6;
+        ctx.beginPath(); ctx.moveTo(cx + side * r * 0.7, ly);
+        ctx.lineTo(cx + side * (r + 5), ly + (i - 1) * 2); ctx.stroke();
+      }
+    }
+  }
+
+  function drawIconLock(cx, cy, s, color) {
+    const w = s * 0.9, h = s * 0.8;
+    const x = cx - w / 2, y = cy;
+    ctx.fillStyle = lightenColor(color, 10);
+    roundRect(ctx, x, y, w, h, 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 2); ctx.stroke();
+    // Shackle
+    ctx.strokeStyle = darkenColor(color, 20); ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(cx, y, w * 0.35, Math.PI, 0); ctx.stroke();
+    // Keyhole
+    ctx.fillStyle = darkenColor(color, 35);
+    ctx.beginPath(); ctx.arc(cx, y + h * 0.35, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(cx - 1, y + h * 0.35, 2, h * 0.25);
+  }
+
+  function drawIconShield(cx, cy, s, color) {
+    const w = s * 0.9, h = s * 1.2;
+    const top = cy - h * 0.4;
+    ctx.fillStyle = lightenColor(color, 10);
+    ctx.beginPath();
+    ctx.moveTo(cx, top); ctx.lineTo(cx + w / 2, top + h * 0.2);
+    ctx.quadraticCurveTo(cx + w / 2, top + h * 0.8, cx, top + h);
+    ctx.quadraticCurveTo(cx - w / 2, top + h * 0.8, cx - w / 2, top + h * 0.2);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1; ctx.stroke();
+    // Checkmark
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx - 4, cy + 1); ctx.lineTo(cx - 1, cy + 4); ctx.lineTo(cx + 5, cy - 3); ctx.stroke();
+  }
+
+  function drawIconRouter(cx, cy, s, color) {
+    const w = s * 1.3, h = s * 0.7;
+    const x = cx - w / 2, y = cy;
+    ctx.fillStyle = lightenColor(color, 10);
+    roundRect(ctx, x, y, w, h, 3); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 3); ctx.stroke();
+    // Antennas
+    ctx.strokeStyle = darkenColor(color, 20); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx - 6, y); ctx.lineTo(cx - 10, y - s * 0.6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 6, y); ctx.lineTo(cx + 10, y - s * 0.6); ctx.stroke();
+    // LED
+    ctx.fillStyle = '#4caf50';
+    ctx.beginPath(); ctx.arc(cx, y + h / 2, 2, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawIconSwitchNet(cx, cy, s, color) {
+    const w = s * 1.4, h = s * 0.55;
+    const x = cx - w / 2, y = cy - h / 2;
+    ctx.fillStyle = lightenColor(color, 10);
+    roundRect(ctx, x, y, w, h, 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 2); ctx.stroke();
+    // Ports
+    ctx.fillStyle = darkenColor(color, 20);
+    for (let i = 0; i < 6; i++) {
+      ctx.fillRect(x + 3 + i * (w - 8) / 5, y + h - 5, 3, 3);
+    }
+    // Arrows
+    ctx.strokeStyle = darkenColor(color, 15); ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(cx - 6, cy - 1); ctx.lineTo(cx + 6, cy - 1); ctx.stroke();
+  }
+
+  function drawIconFirewall(cx, cy, s, color) {
+    const w = s * 1.0, h = s * 1.2;
+    const x = cx - w / 2, y = cy - h / 2;
+    const grad = ctx.createLinearGradient(x, y, x, y + h);
+    grad.addColorStop(0, '#e74c3c'); grad.addColorStop(0.5, lightenColor(color, 10)); grad.addColorStop(1, darkenColor(color, 15));
+    ctx.fillStyle = grad;
+    roundRect(ctx, x, y, w, h, 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 2); ctx.stroke();
+    // Brick pattern
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 0.6;
+    for (let row = 0; row < 4; row++) {
+      const ry = y + 3 + row * (h - 6) / 4;
+      ctx.beginPath(); ctx.moveTo(x + 2, ry); ctx.lineTo(x + w - 2, ry); ctx.stroke();
+    }
+  }
+
+  function drawIconWifi(cx, cy, s, color) {
+    ctx.strokeStyle = lightenColor(color, 10); ctx.lineWidth = 2;
+    for (let i = 1; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.arc(cx, cy + s * 0.3, s * 0.25 * i, -Math.PI * 0.8, -Math.PI * 0.2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = lightenColor(color, 10);
+    ctx.beginPath(); ctx.arc(cx, cy + s * 0.3, 3, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawIconGlobe(cx, cy, s, color) {
+    const r = s * 0.7;
+    ctx.fillStyle = lightenColor(color, 25);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 1; ctx.stroke();
+    // Meridians
+    ctx.strokeStyle = darkenColor(color, 10); ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.ellipse(cx, cy, r * 0.4, r, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r); ctx.stroke();
+  }
+
+  function drawIconVpn(cx, cy, s, color) {
+    const r = s * 0.55;
+    ctx.fillStyle = lightenColor(color, 15);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1.5; ctx.stroke();
+    // Lock inside
+    ctx.fillStyle = darkenColor(color, 25);
+    ctx.fillRect(cx - 4, cy, 8, 6);
+    ctx.strokeStyle = darkenColor(color, 20); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cx, cy, 3.5, Math.PI, 0); ctx.stroke();
+  }
+
+  function drawIconDns(cx, cy, s, color) {
+    const w = s * 1.2, h = s * 0.9;
+    const x = cx - w / 2, y = cy - h / 2;
+    ctx.fillStyle = lightenColor(color, 20);
+    roundRect(ctx, x, y, w, h, 3); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 3); ctx.stroke();
+    ctx.fillStyle = darkenColor(color, 20);
+    ctx.font = 'bold ' + (s * 0.4) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('DNS', cx, cy);
+  }
+
+  function drawIconLoadbalancer(cx, cy, s, color) {
+    // Input line
+    ctx.strokeStyle = darkenColor(color, 15); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx, cy - s * 0.7); ctx.lineTo(cx, cy - 2); ctx.stroke();
+    // Central circle
+    ctx.fillStyle = lightenColor(color, 10);
+    ctx.beginPath(); ctx.arc(cx, cy, s * 0.35, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1; ctx.stroke();
+    // Output lines
+    for (let dx = -1; dx <= 1; dx++) {
+      ctx.strokeStyle = darkenColor(color, 15); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(cx, cy + 2);
+      ctx.lineTo(cx + dx * s * 0.6, cy + s * 0.7); ctx.stroke();
+    }
+  }
+
+  function drawIconDeskPhone(cx, cy, s, color) {
+    const w = s * 1.1, h = s * 0.7;
+    const x = cx - w / 2, y = cy;
+    ctx.fillStyle = lightenColor(color, 10);
+    roundRect(ctx, x, y, w, h, 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 2); ctx.stroke();
+    // Handset
+    ctx.strokeStyle = darkenColor(color, 20); ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - 8, y - 2); ctx.quadraticCurveTo(cx, y - 10, cx + 8, y - 2); ctx.stroke();
+    ctx.lineCap = 'butt';
+  }
+
+  function drawIconMonitor(cx, cy, s, color) {
+    const w = s * 1.6, h = s * 1.0;
+    const x = cx - w / 2, y = cy - h / 2 - 2;
+    ctx.fillStyle = lightenColor(color, 10);
+    roundRect(ctx, x, y, w, h, 3); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1.2;
+    roundRect(ctx, x, y, w, h, 3); ctx.stroke();
+    ctx.fillStyle = lightenColor(color, 45);
+    roundRect(ctx, x + 3, y + 3, w - 6, h - 8, 1); ctx.fill();
+    ctx.fillStyle = darkenColor(color, 10);
+    ctx.fillRect(cx - 3, y + h, 6, 4);
+    ctx.fillRect(cx - 10, y + h + 4, 20, 2);
+  }
+
+  function drawIconProjector(cx, cy, s, color) {
+    const w = s * 1.3, h = s * 0.7;
+    const x = cx - w / 2, y = cy - h / 2;
+    ctx.fillStyle = lightenColor(color, 10);
+    roundRect(ctx, x, y, w, h, 3); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 3); ctx.stroke();
+    // Lens
+    ctx.fillStyle = lightenColor(color, 40);
+    ctx.beginPath(); ctx.arc(x + w * 0.25, cy, h * 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 1; ctx.stroke();
+    // Light beam
+    ctx.fillStyle = 'rgba(255,255,200,0.15)';
+    ctx.beginPath(); ctx.moveTo(x, cy); ctx.lineTo(x - s * 0.5, cy - s * 0.4);
+    ctx.lineTo(x - s * 0.5, cy + s * 0.4); ctx.closePath(); ctx.fill();
+  }
+
+  function drawIconWhiteboard(cx, cy, s, color) {
+    const w = s * 1.5, h = s * 1.1;
+    const x = cx - w / 2, y = cy - h / 2;
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, x, y, w, h, 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 1.5;
+    roundRect(ctx, x, y, w, h, 2); ctx.stroke();
+    // Writing lines
+    ctx.strokeStyle = lightenColor(color, 10); ctx.lineWidth = 0.8;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath(); ctx.moveTo(x + 5, y + 6 + i * 7); ctx.lineTo(x + w - 5 - i * 4, y + 6 + i * 7); ctx.stroke();
+    }
+  }
+
+  function drawIconCamera(cx, cy, s, color) {
+    const w = s * 0.9, h = s * 0.7;
+    const x = cx - w / 2, y = cy - h / 2 + 2;
+    ctx.fillStyle = lightenColor(color, 10);
+    roundRect(ctx, x, y, w, h, 3); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 3); ctx.stroke();
+    // Lens
+    ctx.fillStyle = lightenColor(color, 40);
+    ctx.beginPath(); ctx.arc(cx, cy + 2, h * 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 1; ctx.stroke();
+    // Flash
+    ctx.fillStyle = darkenColor(color, 15);
+    ctx.fillRect(cx + w * 0.2, y - 3, 5, 4);
+  }
+
+  function drawIconHeadset(cx, cy, s, color) {
+    const r = s * 0.6;
+    // Band
+    ctx.strokeStyle = darkenColor(color, 20); ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(cx, cy - 2, r, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+    // Ear cups
+    ctx.fillStyle = lightenColor(color, 10);
+    ctx.fillRect(cx - r - 3, cy - 2, 6, s * 0.6);
+    ctx.fillRect(cx + r - 3, cy - 2, 6, s * 0.6);
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    ctx.strokeRect(cx - r - 3, cy - 2, 6, s * 0.6);
+    ctx.strokeRect(cx + r - 3, cy - 2, 6, s * 0.6);
+    // Mic
+    ctx.strokeStyle = darkenColor(color, 15); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx - r, cy + s * 0.25); ctx.lineTo(cx - r - 4, cy + s * 0.55); ctx.stroke();
+  }
+
+  function drawIconSpeaker(cx, cy, s, color) {
+    const w = s * 0.8, h = s * 1.2;
+    const x = cx - w / 2, y = cy - h / 2;
+    ctx.fillStyle = lightenColor(color, 10);
+    roundRect(ctx, x, y, w, h, 4); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 4); ctx.stroke();
+    // Speaker cone
+    ctx.fillStyle = darkenColor(color, 15);
+    ctx.beginPath(); ctx.arc(cx, cy + 2, w * 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 0.8; ctx.stroke();
+    // Tweeter
+    ctx.beginPath(); ctx.arc(cx, cy - h * 0.25, 3, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawIconDocument(cx, cy, s, color) {
+    const w = s * 0.9, h = s * 1.2;
+    const x = cx - w / 2, y = cy - h / 2;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, h);
+    // Dog-ear
+    ctx.fillStyle = '#eee';
+    ctx.beginPath(); ctx.moveTo(x + w - 6, y); ctx.lineTo(x + w, y + 6); ctx.lineTo(x + w - 6, y + 6); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.5; ctx.stroke();
+    // Lines
+    ctx.strokeStyle = lightenColor(color, 10); ctx.lineWidth = 0.7;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath(); ctx.moveTo(x + 3, y + 10 + i * 5); ctx.lineTo(x + w - 4, y + 10 + i * 5); ctx.stroke();
+    }
+  }
+
+  function drawIconClipboard(cx, cy, s, color) {
+    const w = s * 1.0, h = s * 1.3;
+    const x = cx - w / 2, y = cy - h / 2 + 2;
+    ctx.fillStyle = lightenColor(color, 25);
+    roundRect(ctx, x, y, w, h, 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 2); ctx.stroke();
+    // Clip
+    ctx.fillStyle = darkenColor(color, 15);
+    roundRect(ctx, cx - 5, y - 4, 10, 7, 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 0.8;
+    roundRect(ctx, cx - 5, y - 4, 10, 7, 2); ctx.stroke();
+    // Inner paper
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x + 3, y + 5, w - 6, h - 8);
+  }
+
+  function drawIconPencil(cx, cy, s, color) {
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.PI / 6);
+    const w = 5, h = s * 1.4;
+    ctx.fillStyle = lightenColor(color, 10);
+    ctx.fillRect(-w / 2, -h / 2, w, h * 0.75);
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 0.8;
+    ctx.strokeRect(-w / 2, -h / 2, w, h * 0.75);
+    // Tip
+    ctx.fillStyle = '#f5deb3';
+    ctx.beginPath(); ctx.moveTo(-w / 2, h * 0.25); ctx.lineTo(w / 2, h * 0.25);
+    ctx.lineTo(0, h / 2); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#999'; ctx.lineWidth = 0.5; ctx.stroke();
+    // Eraser
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(-w / 2, -h / 2, w, 4);
+    ctx.restore();
+  }
+
+  function drawIconStamp(cx, cy, s, color) {
+    // Handle
+    ctx.fillStyle = darkenColor(color, 10);
+    ctx.fillRect(cx - 3, cy - s * 0.5, 6, s * 0.5);
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 0.8;
+    ctx.strokeRect(cx - 3, cy - s * 0.5, 6, s * 0.5);
+    // Stamp base
+    ctx.fillStyle = lightenColor(color, 10);
+    roundRect(ctx, cx - s * 0.5, cy, s, s * 0.35, 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 30); ctx.lineWidth = 1;
+    roundRect(ctx, cx - s * 0.5, cy, s, s * 0.35, 2); ctx.stroke();
+    // Ink mark
+    ctx.fillStyle = '#c0392b'; ctx.globalAlpha = 0.3;
+    ctx.beginPath(); ctx.arc(cx, cy + s * 0.55, s * 0.25, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawIconCalendar(cx, cy, s, color) {
+    const w = s * 1.1, h = s * 1.1;
+    const x = cx - w / 2, y = cy - h / 2;
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, x, y, w, h, 2); ctx.fill();
+    ctx.strokeStyle = darkenColor(color, 25); ctx.lineWidth = 1;
+    roundRect(ctx, x, y, w, h, 2); ctx.stroke();
+    // Header
+    ctx.fillStyle = lightenColor(color, 5);
+    ctx.fillRect(x + 1, y + 1, w - 2, h * 0.25);
+    // Rings
+    ctx.strokeStyle = darkenColor(color, 20); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x + w * 0.3, y - 2); ctx.lineTo(x + w * 0.3, y + 3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + w * 0.7, y - 2); ctx.lineTo(x + w * 0.7, y + 3); ctx.stroke();
+    // Date grid
+    ctx.fillStyle = darkenColor(color, 15);
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) {
+      ctx.fillRect(x + 4 + c * (w - 10) / 3, y + h * 0.35 + r * 5, 2, 2);
+    }
+  }
+
+  // ===== Register All Icons =====
+  // System
+  registerIcon('server',    'サーバ',        '🖥', 'system', drawIconServer);
+  registerIcon('pc',        'PC',            '💻', 'system', drawIconPC);
+  registerIcon('laptop',    'ノートPC',      '💻', 'system', drawIconLaptop);
+  registerIcon('database',  'データベース',  '🗄', 'system', drawIconDatabase);
+  registerIcon('cloud',     'クラウド',      '☁', 'system', drawIconCloud);
+  registerIcon('container', 'コンテナ',      '📦', 'system', drawIconContainer);
+  registerIcon('api',       'API',           '⚡', 'system', drawIconApi);
+  registerIcon('terminal',  'ターミナル',    '>_', 'system', drawIconTerminal);
+  registerIcon('code',      'コード',        '</>', 'system', drawIconCode);
+  registerIcon('bug',       'バグ',          '🐛', 'system', drawIconBug);
+  registerIcon('lock',      'セキュリティ',  '🔒', 'system', drawIconLock);
+  registerIcon('shield',    '防御',          '🛡', 'system', drawIconShield);
+  // Network
+  registerIcon('router',       'ルーター',        '📡', 'network', drawIconRouter);
+  registerIcon('switch_net',   'スイッチ',        '🔀', 'network', drawIconSwitchNet);
+  registerIcon('firewall',     'ファイアウォール', '🧱', 'network', drawIconFirewall);
+  registerIcon('wifi',         'Wi-Fi',           '📶', 'network', drawIconWifi);
+  registerIcon('globe',        'インターネット',   '🌐', 'network', drawIconGlobe);
+  registerIcon('vpn',          'VPN',             '🔐', 'network', drawIconVpn);
+  registerIcon('dns',          'DNS',             '🏷', 'network', drawIconDns);
+  registerIcon('loadbalancer', '負荷分散',        '⚖', 'network', drawIconLoadbalancer);
+  // Office
+  registerIcon('printer',    'プリンタ',      '🖨', 'office', drawIconPrinter);
+  registerIcon('phone',      '電話',          '📱', 'office', drawIconPhone);
+  registerIcon('desk_phone', '固定電話',      '☎', 'office', drawIconDeskPhone);
+  registerIcon('monitor',    'モニター',      '🖥', 'office', drawIconMonitor);
+  registerIcon('projector',  'プロジェクタ',  '📽', 'office', drawIconProjector);
+  registerIcon('whiteboard', 'ホワイトボード','📋', 'office', drawIconWhiteboard);
+  registerIcon('camera',     'カメラ',        '📷', 'office', drawIconCamera);
+  registerIcon('headset',    'ヘッドセット',  '🎧', 'office', drawIconHeadset);
+  registerIcon('speaker',    'スピーカー',    '🔊', 'office', drawIconSpeaker);
+  // Stationery
+  registerIcon('folder',    'フォルダ',        '📁', 'stationery', drawIconFolder);
+  registerIcon('document',  '書類',            '📄', 'stationery', drawIconDocument);
+  registerIcon('clipboard', 'クリップボード',  '📋', 'stationery', drawIconClipboard);
+  registerIcon('pencil',    '鉛筆',            '✏', 'stationery', drawIconPencil);
+  registerIcon('stamp',     'スタンプ',        '🔖', 'stationery', drawIconStamp);
+  registerIcon('calendar',  'カレンダー',      '📅', 'stationery', drawIconCalendar);
+  // General
+  registerIcon('gear', '設定',   '⚙', 'general', drawIconGear);
+  registerIcon('star', 'スター', '⭐', 'general', drawIconStar);
+
 
   function roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
@@ -1563,9 +2057,9 @@
         if (state.searchQuery && !isMatch) div.style.display = 'none';
         const roleNames = (p.roleIds || []).map(rid => { const r = state.roles.find(r => r.id === rid); return r ? r.name : ''; }).filter(Boolean);
         const roleStr = roleNames.length > 0 ? ' (' + roleNames.join(', ') + ')' : '';
-        const iconMap = {server:'🖥',pc:'💻',printer:'🖨',phone:'📱',cloud:'☁',database:'🗄',folder:'📁',gear:'⚙',star:'⭐'};
         const isItem = p.itemType === 'item';
-        const iconEmoji = isItem ? (iconMap[p.icon] || '📦') : '';
+        const iconEntry = isItem ? getIconEntry(p.icon) : null;
+        const iconEmoji = isItem ? (iconEntry ? iconEntry.emoji : '📦') : '';
         div.innerHTML = isItem
           ? `<span style="margin-right:4px">${iconEmoji}</span><span>${p.name}</span>`
           : `<span class="color-dot" style="background:${p.color}"></span><span>${p.name}${roleStr}</span>`;
@@ -1608,9 +2102,9 @@
       if (state.searchQuery && !isMatch) div.style.display = 'none';
       const roleNames = (p.roleIds || []).map(rid => { const r = state.roles.find(r => r.id === rid); return r ? r.name : ''; }).filter(Boolean);
       const roleStr = roleNames.length > 0 ? ' (' + roleNames.join(', ') + ')' : '';
-      const iconMap = {server:'🖥',pc:'💻',printer:'🖨',phone:'📱',cloud:'☁',database:'🗄',folder:'📁',gear:'⚙',star:'⭐'};
       const isItem = p.itemType === 'item';
-      const iconEmoji = isItem ? (iconMap[p.icon] || '📦') : '';
+      const iconEntry = isItem ? getIconEntry(p.icon) : null;
+      const iconEmoji = isItem ? (iconEntry ? iconEntry.emoji : '📦') : '';
       div.innerHTML = isItem
         ? `<span style="margin-right:4px">${iconEmoji}</span><span>${p.name}</span>`
         : `<span class="color-dot" style="background:${p.color}"></span><span>${p.name}${roleStr}</span>`;
@@ -3511,6 +4005,27 @@
       if (t) { t.color = propTextColor.value; saveState(); render(); }
     });
   }
+
+  // ===== Dynamic Icon Dropdown =====
+  function renderItemIconSelect() {
+    const sel = document.getElementById('prop-item-icon');
+    if (!sel) return;
+    sel.innerHTML = '';
+    ICON_CATEGORIES.forEach(cat => {
+      const icons = ICON_REGISTRY.filter(e => e.category === cat.id);
+      if (icons.length === 0) return;
+      const og = document.createElement('optgroup');
+      og.label = cat.label;
+      icons.forEach(entry => {
+        const opt = document.createElement('option');
+        opt.value = entry.id;
+        opt.textContent = entry.emoji + ' ' + entry.name;
+        og.appendChild(opt);
+      });
+      sel.appendChild(og);
+    });
+  }
+  renderItemIconSelect();
 
   // ===== Item Property Handlers =====
   const propItemName = document.getElementById('prop-item-name');
