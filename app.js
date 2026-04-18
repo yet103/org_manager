@@ -3497,6 +3497,159 @@
     render();
   }, { passive: false });
 
+  // ===== Touch Events (Pinch Zoom & Pan) =====
+  // Prevent default browser touch gestures on canvas
+  canvas.style.touchAction = 'none';
+
+  let touchState = {
+    active: false,
+    mode: null,          // 'pan' or 'pinch'
+    startX: 0,
+    startY: 0,
+    origOffsetX: 0,
+    origOffsetY: 0,
+    lastPinchDist: 0,
+    lastPinchMidX: 0,
+    lastPinchMidY: 0,
+  };
+
+  function getTouchDistance(t1, t2) {
+    return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+  }
+
+  function getTouchMidpoint(t1, t2) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (t1.clientX + t2.clientX) / 2 - rect.left,
+      y: (t1.clientY + t2.clientY) / 2 - rect.top,
+    };
+  }
+
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      // Single finger → pan
+      const rect = canvas.getBoundingClientRect();
+      const tx = e.touches[0].clientX - rect.left;
+      const ty = e.touches[0].clientY - rect.top;
+      touchState = {
+        active: true,
+        mode: 'pan',
+        startX: tx,
+        startY: ty,
+        origOffsetX: state.canvasOffset.x,
+        origOffsetY: state.canvasOffset.y,
+        lastPinchDist: 0,
+        lastPinchMidX: 0,
+        lastPinchMidY: 0,
+      };
+    } else if (e.touches.length === 2) {
+      // Two fingers → pinch zoom
+      const dist = getTouchDistance(e.touches[0], e.touches[1]);
+      const mid = getTouchMidpoint(e.touches[0], e.touches[1]);
+      touchState = {
+        active: true,
+        mode: 'pinch',
+        startX: 0,
+        startY: 0,
+        origOffsetX: state.canvasOffset.x,
+        origOffsetY: state.canvasOffset.y,
+        lastPinchDist: dist,
+        lastPinchMidX: mid.x,
+        lastPinchMidY: mid.y,
+      };
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!touchState.active) return;
+
+    if (touchState.mode === 'pan' && e.touches.length === 1) {
+      const rect = canvas.getBoundingClientRect();
+      const tx = e.touches[0].clientX - rect.left;
+      const ty = e.touches[0].clientY - rect.top;
+      const dx = tx - touchState.startX;
+      const dy = ty - touchState.startY;
+      state.canvasOffset.x = touchState.origOffsetX + dx;
+      state.canvasOffset.y = touchState.origOffsetY + dy;
+      render();
+    } else if (e.touches.length === 2) {
+      // Switch to pinch mode if was pan
+      if (touchState.mode === 'pan') {
+        const dist = getTouchDistance(e.touches[0], e.touches[1]);
+        const mid = getTouchMidpoint(e.touches[0], e.touches[1]);
+        touchState.mode = 'pinch';
+        touchState.lastPinchDist = dist;
+        touchState.lastPinchMidX = mid.x;
+        touchState.lastPinchMidY = mid.y;
+        touchState.origOffsetX = state.canvasOffset.x;
+        touchState.origOffsetY = state.canvasOffset.y;
+        return;
+      }
+
+      const dist = getTouchDistance(e.touches[0], e.touches[1]);
+      const mid = getTouchMidpoint(e.touches[0], e.touches[1]);
+
+      if (touchState.lastPinchDist > 0) {
+        // Calculate zoom delta
+        const ratio = dist / touchState.lastPinchDist;
+        const worldBefore = screenToWorld(mid.x, mid.y);
+
+        state.zoom = Math.max(state.zoomMin, Math.min(state.zoomMax, state.zoom * ratio));
+
+        // Adjust offset so the world point under pinch center stays fixed
+        const cx = canvas.width / 2 + state.canvasOffset.x;
+        const cy = canvas.height / 3 + state.canvasOffset.y;
+        let screenAfter;
+        if (state.viewMode === 'quarter') {
+          const iso = toIso(worldBefore.x, worldBefore.y);
+          screenAfter = { x: iso.x * state.zoom + cx, y: iso.y * state.zoom + cy };
+        } else {
+          screenAfter = { x: worldBefore.x * state.zoom + cx, y: worldBefore.y * state.zoom + cy };
+        }
+        state.canvasOffset.x += mid.x - screenAfter.x;
+        state.canvasOffset.y += mid.y - screenAfter.y;
+
+        // Also handle pan component of pinch
+        const panDx = mid.x - touchState.lastPinchMidX;
+        const panDy = mid.y - touchState.lastPinchMidY;
+        state.canvasOffset.x += panDx;
+        state.canvasOffset.y += panDy;
+
+        updateZoomLabel();
+        render();
+      }
+
+      touchState.lastPinchDist = dist;
+      touchState.lastPinchMidX = mid.x;
+      touchState.lastPinchMidY = mid.y;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 0) {
+      touchState.active = false;
+      touchState.mode = null;
+    } else if (e.touches.length === 1) {
+      // Went from 2 fingers to 1 → restart pan from current position
+      const rect = canvas.getBoundingClientRect();
+      const tx = e.touches[0].clientX - rect.left;
+      const ty = e.touches[0].clientY - rect.top;
+      touchState.mode = 'pan';
+      touchState.startX = tx;
+      touchState.startY = ty;
+      touchState.origOffsetX = state.canvasOffset.x;
+      touchState.origOffsetY = state.canvasOffset.y;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchcancel', (e) => {
+    touchState.active = false;
+    touchState.mode = null;
+  });
+
   // ===== Toolbar Events =====
   function updateZoomLabel() {
     if (zoomLabel) zoomLabel.textContent = Math.round(state.zoom * 100) + '%';
